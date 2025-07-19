@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "${id}",
+  "version": "${version}",
+  "name": "${name}",
+  "description": "${description}",
+  "authors": [
+    "Scubakay"
+  ],
+  "contact": {
+    "homepage": "${homepage}",
+    "sources": "${repository}",
+    "issues": "${repository}/issues"
+  },
+  "custom": {
+    "modmenu": {
+      "links": {
+        "modmenu.discord": "${discord}"
+      }
+    }
+  },
+  "license": "MIT",
+  "icon": "assets/${id}/icon.png",
+  "environment": "*",
+  "depends": {
+    "fabricloader": ">=0.16",
+    "minecraft": "${range}",
+    "fabric-api": "*"
+  }
+}
