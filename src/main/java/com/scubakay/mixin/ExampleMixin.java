@@ -1,17 +1,36 @@
 package com.scubakay.mixin;
 
+import com.llamalad7.mixinextras.sugar.Local;
 import com.scubakay.PrunedMod;
-import net.minecraft.server.MinecraftServer;
+import com.scubakay.data.BackupData;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.storage.RegionBasedStorage;
+import net.minecraft.world.storage.RegionFile;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.nio.file.Path;
+
 @SuppressWarnings("UnusedMixin")
-@Mixin(MinecraftServer.class)
+@Mixin(RegionBasedStorage.class)
 public class ExampleMixin {
-	@Inject(at = @At("HEAD"), method = "loadWorld")
-	private void init(CallbackInfo info) {
-		PrunedMod.LOGGER.info("Loading world!");
+	/**
+	 * Todo: Remove region files from world download update when region file is deleted?
+	 */
+	@Inject(
+			method = "write",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/world/storage/RegionFile;getChunkOutputStream(Lnet/minecraft/util/math/ChunkPos;)Ljava/io/DataOutputStream;"
+			))
+	private void pruned$injectRegionFileRegistration(ChunkPos pos, NbtCompound nbt, CallbackInfo ci, @Local RegionFile regionFile) {
+		final Path path = regionFile.getPath();
+		if (nbt.getLong("inhabitedTime").orElse(0L) >= 0) {
+            PrunedMod.LOGGER.info("Adding {} to world download update", path.getFileName());
+			BackupData.getServerState().updateRegion(path);
+		}
 	}
 }

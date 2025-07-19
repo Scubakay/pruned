@@ -1,16 +1,24 @@
 package com.scubakay;
 
+import com.scubakay.data.BackupData;
 import dev.kikugie.fletching_table.annotation.fabric.Entrypoint;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Entrypoint
 public class PrunedMod implements ModInitializer {
-    public static final Logger LOGGER = LoggerFactory.getLogger("template");
+    public static final String MOD_ID = "prunedworlddownload";
+    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+
+    public static String getSaveKey(String namespace) {
+        return "%s_%s".formatted(MOD_ID, namespace);
+    }
 
     @Override
     public void onInitialize() {
+        ServerLifecycleEvents.SERVER_STARTED.register(BackupData::setServer);
         LOGGER.info("Hello world!");
     }
 }
