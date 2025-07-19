@@ -1,6 +1,6 @@
 package com.scubakay.mixin;
 
-import com.scubakay.TemplateMod;
+import com.scubakay.PrunedMod;
 import net.minecraft.server.MinecraftServer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -12,6 +12,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class ExampleMixin {
 	@Inject(at = @At("HEAD"), method = "loadWorld")
 	private void init(CallbackInfo info) {
-		TemplateMod.LOGGER.info("Loading world!");
+		PrunedMod.LOGGER.info("Loading world!");
 	}
 }

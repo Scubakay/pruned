@@ -1,6 +1,6 @@
-# Stonecutter Template
+# Pruned
 
-Based on https://github.com/stonecutter-versioning/stonecutter-template-fabric
+> Automatically create a pruned world download on Google Drive
 
 ## Setup
 
