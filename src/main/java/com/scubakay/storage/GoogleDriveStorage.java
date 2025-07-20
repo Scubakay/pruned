@@ -25,7 +25,7 @@ public class GoogleDriveStorage {
     private static final String APPLICATION_NAME = "Pruned";
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     private static final String TOKENS_DIRECTORY_PATH = "tokens";
-    private static final String CREDENTIALS_FILE_PATH = "/credentials.json";
+    private static final String CREDENTIALS_FILE_PATH = "config/pruned/credentials.json";
 
     private static final List<String> SCOPES =
             Collections.singletonList(DriveScopes.DRIVE_FILE);
@@ -39,11 +39,12 @@ public class GoogleDriveStorage {
      */
     public static Credential getCredentials(final NetHttpTransport HTTP_TRANSPORT)
             throws IOException {
-        // Load client secrets.
-        InputStream in = GoogleDriveStorage.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
-        if (in == null) {
-            throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
+        // Load client secrets from config folder in run directory.
+        java.io.File credentialsFile = new java.io.File(CREDENTIALS_FILE_PATH);
+        if (!credentialsFile.exists()) {
+            throw new FileNotFoundException("File not found: " + credentialsFile.getAbsolutePath());
         }
+        InputStream in = new java.io.FileInputStream(credentialsFile);
         GoogleClientSecrets clientSecrets =
                 GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
 
@@ -87,4 +88,3 @@ public class GoogleDriveStorage {
         return uploadedFile.getId();
     }
 }
-
