@@ -164,6 +164,11 @@ dependencies {
         modImplementation("maven.modrinth:${dep.key.removePrefix("modrinth.include.")}:${property(dep.key).toString()}")
         include("maven.modrinth:${dep.key.removePrefix("modrinth.include.")}:${property(dep.key).toString()}")
     }
+
+    //TODO: Check if these need to be shadowed or something
+    implementation("com.google.api-client:google-api-client:${property("google.api_client").toString()}")
+    implementation("com.google.oauth-client:google-oauth-client-jetty:${property("google.oauth_client").toString()}")
+    implementation("com.google.apis:google-api-services-drive:${property("google.drive").toString()}")
 }
 
 //region Building
