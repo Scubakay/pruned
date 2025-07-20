@@ -1,7 +1,9 @@
 package com.scubakay;
 
+import com.scubakay.config.Config;
 import com.scubakay.data.BackupData;
 import dev.kikugie.fletching_table.annotation.fabric.Entrypoint;
+import eu.midnightdust.lib.config.MidnightConfig;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import org.slf4j.Logger;
@@ -18,6 +20,7 @@ public class PrunedMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        MidnightConfig.init(MOD_ID, Config.class);
         ServerLifecycleEvents.SERVER_STARTED.register(BackupData::setServer);
         LOGGER.info("Hello world!");
     }

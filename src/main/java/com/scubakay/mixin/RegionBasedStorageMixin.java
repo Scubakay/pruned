@@ -2,6 +2,7 @@ package com.scubakay.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import com.scubakay.PrunedMod;
+import com.scubakay.config.Config;
 import com.scubakay.data.BackupData;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.ChunkPos;
@@ -16,7 +17,7 @@ import java.nio.file.Path;
 
 @SuppressWarnings("UnusedMixin")
 @Mixin(RegionBasedStorage.class)
-public class ExampleMixin {
+public class RegionBasedStorageMixin {
 	/**
 	 * Todo: Remove region files from world download update when region file is deleted?
 	 */
@@ -28,7 +29,7 @@ public class ExampleMixin {
 			))
 	private void pruned$injectRegionFileRegistration(ChunkPos pos, NbtCompound nbt, CallbackInfo ci, @Local RegionFile regionFile) {
 		final Path path = regionFile.getPath();
-		if (nbt.getLong("inhabitedTime").orElse(0L) >= 0) {
+		if (nbt.getLong("inhabitedTime").orElse(0L) >= Config.inhabitedTime) {
             PrunedMod.LOGGER.info("Adding {} to world download update", path.getFileName());
 			BackupData.getServerState().updateRegion(path);
 		}
