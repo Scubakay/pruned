@@ -60,14 +60,71 @@ public class GoogleDriveStorage {
     }
 
     /**
-     * Uploads a specific file to Google Drive.
+     * Finds or creates a folder named "pruned" in Google Drive and returns its ID.
+     */
+    private static String getOrCreatePrunedFolderId(Drive service) throws IOException {
+        // Search for folder named "pruned"
+        String query = "mimeType='application/vnd.google-apps.folder' and name='pruned' and trashed=false";
+        List<File> files = service.files().list()
+                .setQ(query)
+                .setSpaces("drive") // Ensure search is in My Drive
+                .setFields("files(id, name)")
+                .execute()
+                .getFiles();
+
+        if (files != null && !files.isEmpty()) {
+            return files.getFirst().getId();
+        }
+
+        // Create folder if not found
+        File folderMetadata = new File();
+        folderMetadata.setName("pruned");
+        folderMetadata.setMimeType("application/vnd.google-apps.folder");
+        File folder = service.files().create(folderMetadata)
+                .setFields("id")
+                .execute();
+        return folder.getId();
+    }
+
+    /**
+     * Finds or creates a folder with the given name under the specified parent folder in Google Drive.
+     */
+    private static String getOrCreateSubFolderId(Drive service, String parentId, String subFolderName) throws IOException {
+        String query = String.format(
+            "mimeType='application/vnd.google-apps.folder' and name='%s' and '%s' in parents and trashed=false",
+            subFolderName, parentId
+        );
+        List<File> files = service.files().list()
+                .setQ(query)
+                .setSpaces("drive")
+                .setFields("files(id, name)")
+                .execute()
+                .getFiles();
+
+        if (files != null && !files.isEmpty()) {
+            return files.getFirst().getId();
+        }
+
+        File folderMetadata = new File();
+        folderMetadata.setName(subFolderName);
+        folderMetadata.setMimeType("application/vnd.google-apps.folder");
+        folderMetadata.setParents(Collections.singletonList(parentId));
+        File folder = service.files().create(folderMetadata)
+                .setFields("id")
+                .execute();
+        return folder.getId();
+    }
+
+    /**
+     * Uploads a specific file to Google Drive in the "pruned" folder, preserving subdirectory (region/entities).
      *
      * @param localFilePath The path to the local file to upload.
      * @param mimeType The MIME type of the file.
+     * @param subFolderName The subfolder under "pruned" to upload to (e.g., "region", "entities").
      * @return The uploaded file's ID.
      * @throws IOException If an error occurs during upload.
      */
-    public static String uploadFile(String localFilePath, String mimeType) throws IOException {
+    public static String uploadFileToSubFolder(String localFilePath, String mimeType, String subFolderName) throws IOException {
         final NetHttpTransport HTTP_TRANSPORT = new NetHttpTransport();
         Credential credential = getCredentials(HTTP_TRANSPORT);
 
@@ -75,15 +132,26 @@ public class GoogleDriveStorage {
                 .setApplicationName(APPLICATION_NAME)
                 .build();
 
+        // Get or create "pruned" folder
+        String prunedFolderId = getOrCreatePrunedFolderId(service);
+
+        // Get or create subfolder (region/entities)
+        String subFolderId = getOrCreateSubFolderId(service, prunedFolderId, subFolderName);
+
         java.io.File filePath = new java.io.File(localFilePath);
         File fileMetadata = new File();
         fileMetadata.setName(filePath.getName());
+        fileMetadata.setParents(Collections.singletonList(subFolderId));
 
         FileContent mediaContent = new FileContent(mimeType, filePath);
 
         File uploadedFile = service.files().create(fileMetadata, mediaContent)
-                .setFields("id")
+                .setFields("id, parents")
                 .execute();
+
+        if (uploadedFile.getParents() == null || !uploadedFile.getParents().contains(subFolderId)) {
+            throw new IOException("File was not uploaded to the '" + subFolderName + "' folder.");
+        }
 
         return uploadedFile.getId();
     }
