@@ -38,6 +38,11 @@ public class BackupData extends PersistentState {
         server = s;
     }
 
+    public static BackupData getServerState(MinecraftServer s) {
+        setServer(s);
+        return getServerState();
+    }
+
     public static BackupData getServerState() {
         ServerWorld serverWorld = server.getWorld(World.OVERWORLD);
         assert serverWorld != null;
