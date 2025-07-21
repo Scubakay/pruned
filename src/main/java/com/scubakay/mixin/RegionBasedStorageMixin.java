@@ -30,7 +30,6 @@ public class RegionBasedStorageMixin {
 	private void pruned$injectRegionFileRegistration(ChunkPos pos, NbtCompound nbt, CallbackInfo ci, @Local RegionFile regionFile) {
 		final Path path = regionFile.getPath();
 		if (nbt.getLong("inhabitedTime").orElse(0L) >= Config.inhabitedTime) {
-            PrunedMod.LOGGER.info("Adding {} to world download update", path.getFileName());
 			BackupData.getServerState().updateRegion(path);
 		}
 	}
