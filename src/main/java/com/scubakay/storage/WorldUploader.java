@@ -1,5 +1,6 @@
 package com.scubakay.storage;
 
+import com.scubakay.PrunedMod;
 import com.scubakay.config.Config;
 
 import java.nio.file.Path;
@@ -10,8 +11,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+@SuppressWarnings("CallToPrintStackTrace")
 public class WorldUploader {
+    // Single-threaded executor for uploads (can be changed to multi-threaded if needed)
+    private static final ExecutorService uploadExecutor = Executors.newSingleThreadExecutor();
+
     public static void synchronizeDirty(Path path, Map<String, Path> regions) {
         String worldName = getWorldName(path);
         Path sourceRoot = path.toAbsolutePath();
@@ -25,9 +32,9 @@ public class WorldUploader {
 
     public static void synchronizeWithIgnoreList(Path path) {
         List<Pattern> ignoredPatterns = Config.ignored.stream()
-            .map(WorldUploader::gitignorePatternToRegex)
-            .map(Pattern::compile)
-            .collect(Collectors.toList());
+                .map(WorldUploader::gitignorePatternToRegex)
+                .map(Pattern::compile)
+                .collect(Collectors.toList());
 
         synchronizeRecursive(getWorldName(path), path, path, ignoredPatterns);
     }
@@ -37,7 +44,7 @@ public class WorldUploader {
             for (Path entry : stream) {
                 String relativePath = basePath.relativize(entry).toString().replace("\\", "/");
                 boolean ignored = ignoredPatterns.stream()
-                    .anyMatch(p -> p.matcher(relativePath).matches());
+                        .anyMatch(p -> p.matcher(relativePath).matches());
                 if (ignored) continue;
 
                 if (Files.isDirectory(entry)) {
@@ -47,18 +54,34 @@ public class WorldUploader {
                     if (mimeType == null) {
                         mimeType = "application/octet-stream";
                     }
-                    // Pass relativePath to preserve folder structure
-                    GoogleDriveStorage.uploadFileToSubFolderWithPath(
-                        entry.toAbsolutePath().toString(),
-                        mimeType,
-                        worldName,
-                        relativePath
-                    );
+                    // Submit upload task to executor
+                    String finalMimeType = mimeType;
+                    uploadFile(worldName, entry, finalMimeType, relativePath);
                 }
             }
         } catch (IOException e) {
+            PrunedMod.LOGGER.info("Something went wrong trying to upload {} recursively", currentPath.toAbsolutePath());
             e.printStackTrace();
         }
+    }
+
+    private static void uploadFile(String worldName, Path entry, String finalMimeType, String relativePath) {
+        uploadExecutor.submit(() -> {
+            try {
+                GoogleDriveStorage.uploadFileToSubFolderWithPath(
+                        entry.toAbsolutePath().toString(),
+                        finalMimeType,
+                        worldName,
+                        relativePath
+                );
+                if (Config.debug) {
+                    PrunedMod.LOGGER.info("Synchronized {}", entry.toAbsolutePath());
+                }
+            } catch (IOException e) {
+                PrunedMod.LOGGER.info("Something went wrong trying to upload {}", entry.toAbsolutePath());
+                e.printStackTrace();
+            }
+        });
     }
 
     // Upload a single file to Google Drive, preserving its relative path under worldName
@@ -73,16 +96,9 @@ public class WorldUploader {
             if (mimeType == null) {
                 mimeType = "application/octet-stream";
             }
-            try {
-                GoogleDriveStorage.uploadFileToSubFolderWithPath(
-                    filePath.toAbsolutePath().toString(),
-                    mimeType,
-                    worldName,
-                    relativePath.toString().replace("\\", "/")
-                );
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            // Submit upload task to executor
+            String finalMimeType = mimeType;
+            uploadFile(worldName, filePath, finalMimeType, relativePath.toString().replace("\\", "/"));
         }
     }
 
@@ -97,11 +113,21 @@ public class WorldUploader {
         for (int i = 0; i < corePattern.length(); i++) {
             char c = corePattern.charAt(i);
             switch (c) {
-                case '*': sb.append(".*"); break;
-                case '?': sb.append('.'); break;
-                case '.': sb.append("\\."); break;
-                case '/': sb.append("/"); break;
-                default: sb.append(Pattern.quote(String.valueOf(c))); break;
+                case '*':
+                    sb.append(".*");
+                    break;
+                case '?':
+                    sb.append('.');
+                    break;
+                case '.':
+                    sb.append("\\.");
+                    break;
+                case '/':
+                    sb.append("/");
+                    break;
+                default:
+                    sb.append(Pattern.quote(String.valueOf(c)));
+                    break;
             }
         }
 

@@ -16,4 +16,6 @@ public class Config extends MidnightConfig {
             ".dat_old",
             ".lock"
     );
+    @Entry()
+    public static boolean debug = false;
 }
