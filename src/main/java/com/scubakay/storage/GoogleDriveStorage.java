@@ -30,14 +30,17 @@ public class GoogleDriveStorage {
     private static final List<String> SCOPES =
             Collections.singletonList(DriveScopes.DRIVE_FILE);
 
+    public static void login() throws IOException {
+        getCredentials(new NetHttpTransport());
+    }
+
     /**
      * Creates an authorized Credential object.
      *
-     * @param HTTP_TRANSPORT The network HTTP Transport.
      * @return An authorized Credential object.
      * @throws IOException If the credentials.json file cannot be found.
      */
-    public static Credential getCredentials(final NetHttpTransport HTTP_TRANSPORT)
+    private static Credential getCredentials(NetHttpTransport HTTP_TRANSPORT)
             throws IOException {
         // Load client secrets from config folder in run directory.
         java.io.File credentialsFile = new java.io.File(CREDENTIALS_FILE_PATH);

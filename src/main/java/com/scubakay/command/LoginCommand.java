@@ -5,8 +5,6 @@ import com.mojang.brigadier.context.CommandContext;
 import com.scubakay.data.BackupData;
 import com.scubakay.storage.WorldUploader;
 import com.scubakay.storage.GoogleDriveStorage;
-import com.google.api.client.http.javanet.NetHttpTransport;
-
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -26,8 +24,7 @@ public class LoginCommand {
 
     private static int login(CommandContext<ServerCommandSource> source) {
         try {
-            // Attempt to login (will prompt user if needed)
-            GoogleDriveStorage.getCredentials(new NetHttpTransport());
+            GoogleDriveStorage.login();
             source.getSource().sendFeedback(() -> Text.literal("Google Drive login successful or already authorized."), false);
         } catch (Exception e) {
             source.getSource().sendError(Text.literal("Google Drive login failed: " + e.getMessage()));

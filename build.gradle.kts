@@ -1,7 +1,7 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import me.modmuss50.mpp.ReleaseType
 import kotlin.text.split
 import kotlin.text.trim
-//import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
     `maven-publish`
@@ -11,40 +11,30 @@ plugins {
     id("com.google.devtools.ksp") version "2.2.0-2.0.2"
     id("dev.kikugie.fletching-table.fabric") version "0.1.0-alpha.13"
     id("me.modmuss50.mod-publish-plugin")
-    //id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("com.gradleup.shadow") version "8.3.8"
 }
 
 //region Shadow libraries
 /**
  * Everything needed to shadow a library, example:
  * shadowAndRelocate("de.maxhenkel.configbuilder:configbuilder:2.0.2", "de.maxhenkel.configbuilder", "com.scubakay.autorelog.configbuilder")
- * When using: uncomment the import and plugins.id for com.github.johnrengelman.shadow
  */
-//val shadowLibrary = configurations.create("shadowLibrary") {
-//    isCanBeResolved = true
-//    isCanBeConsumed = false
-//}
-//
-//val shadowRelocations = mutableListOf<Pair<String, String>>()
-//
-//fun shadowAndRelocate(dependencyNotation: String, fromPackage: String, toPackage: String) {
-//    dependencies.add("shadowLibrary", dependencyNotation)
-//    shadowRelocations.add(fromPackage to toPackage)
-//}
-//
-//tasks.named<ShadowJar>("shadowJar") {
-//    configurations = listOf(shadowLibrary)
-//    archiveClassifier = "dev-shadow"
-//    shadowRelocations.forEach { (from, to) ->
-//        relocate(from, to)
-//    }
-//}
-//
-//tasks {
-//    remapJar {
-//        inputFile = shadowJar.get().archiveFile
-//    }
-//}
+val shadowLibrary = configurations.create("shadowLibrary") {
+    isCanBeResolved = true
+    isCanBeConsumed = false
+}
+
+tasks.named<ShadowJar>("shadowJar") {
+    configurations = listOf(shadowLibrary)
+    archiveClassifier = "dev-shadow"
+    relocate("com.google", "com.scubakay.shadow")
+}
+
+tasks {
+    remapJar {
+        inputFile = shadowJar.get().archiveFile
+    }
+}
 //endregion
 
 //region Mod information
@@ -165,10 +155,12 @@ dependencies {
         include("maven.modrinth:${dep.key.removePrefix("modrinth.include.")}:${property(dep.key).toString()}")
     }
 
-    //TODO: Check if these need to be shadowed or something
     implementation("com.google.api-client:google-api-client:${property("google.api_client").toString()}")
+    shadowLibrary("com.google.api-client:google-api-client:${property("google.api_client").toString()}")
     implementation("com.google.oauth-client:google-oauth-client-jetty:${property("google.oauth_client").toString()}")
+    shadowLibrary("com.google.oauth-client:google-oauth-client-jetty:${property("google.oauth_client").toString()}")
     implementation("com.google.apis:google-api-services-drive:${property("google.drive").toString()}")
+    shadowLibrary("com.google.apis:google-api-services-drive:${property("google.drive").toString()}")
 }
 
 //region Building
