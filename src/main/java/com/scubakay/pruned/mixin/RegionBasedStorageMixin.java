@@ -1,9 +1,8 @@
-package com.scubakay.mixin;
+package com.scubakay.pruned.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import com.scubakay.PrunedMod;
-import com.scubakay.config.Config;
-import com.scubakay.data.BackupData;
+import com.scubakay.pruned.config.Config;
+import com.scubakay.pruned.data.BackupData;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.storage.RegionBasedStorage;

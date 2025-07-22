@@ -1,4 +1,4 @@
-package com.scubakay.config;
+package com.scubakay.pruned.config;
 
 import com.google.common.collect.Lists;
 import eu.midnightdust.lib.config.MidnightConfig;

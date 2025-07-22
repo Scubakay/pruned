@@ -1,10 +1,10 @@
-package com.scubakay.command;
+package com.scubakay.pruned.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
-import com.scubakay.data.BackupData;
-import com.scubakay.storage.WorldUploader;
-import com.scubakay.storage.GoogleDriveStorage;
+import com.scubakay.pruned.data.BackupData;
+import com.scubakay.pruned.storage.WorldUploader;
+import com.scubakay.pruned.storage.GoogleDriveStorage;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;

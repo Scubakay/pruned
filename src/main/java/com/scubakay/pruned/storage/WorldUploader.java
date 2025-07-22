@@ -1,7 +1,7 @@
-package com.scubakay.storage;
+package com.scubakay.pruned.storage;
 
-import com.scubakay.PrunedMod;
-import com.scubakay.config.Config;
+import com.scubakay.pruned.PrunedMod;
+import com.scubakay.pruned.config.Config;
 
 import java.nio.file.Path;
 import java.nio.file.Files;

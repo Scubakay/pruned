@@ -1,8 +1,8 @@
-package com.scubakay;
+package com.scubakay.pruned;
 
-import com.scubakay.command.LoginCommand;
-import com.scubakay.config.Config;
-import com.scubakay.data.BackupData;
+import com.scubakay.pruned.command.LoginCommand;
+import com.scubakay.pruned.config.Config;
+import com.scubakay.pruned.data.BackupData;
 import dev.kikugie.fletching_table.annotation.fabric.Entrypoint;
 import eu.midnightdust.lib.config.MidnightConfig;
 import net.fabricmc.api.ModInitializer;
