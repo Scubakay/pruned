@@ -1,13 +1,14 @@
 package com.scubakay.pruned.data;
 
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
-import com.scubakay.pruned.PrunedMod;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.PersistentState;
-import net.minecraft.world.PersistentStateType;
 import net.minecraft.world.World;
+
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.scubakay.pruned.PrunedMod;
+import net.minecraft.world.PersistentStateType;
 
 import java.nio.file.Path;
 import java.util.HashMap;
