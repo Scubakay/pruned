@@ -2,7 +2,7 @@ package com.scubakay.pruned.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import com.scubakay.pruned.config.Config;
-import com.scubakay.pruned.data.BackupData;
+import com.scubakay.pruned.data.PrunedData;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.storage.RegionBasedStorage;
@@ -27,9 +27,12 @@ public class RegionBasedStorageMixin {
 					target = "Lnet/minecraft/world/storage/RegionFile;getChunkOutputStream(Lnet/minecraft/util/math/ChunkPos;)Ljava/io/DataOutputStream;"
 			))
 	private void pruned$injectRegionFileRegistration(ChunkPos pos, NbtCompound nbt, CallbackInfo ci, @Local RegionFile regionFile) {
-		final Path path = regionFile.getPath();
-		if (nbt.getLong("inhabitedTime").orElse(0L) >= Config.inhabitedTime) {
-			BackupData.getServerState().updateRegion(path);
+		PrunedData pruned = PrunedData.getServerState();
+		if (pruned.isActive()) {
+ 			final Path path = regionFile.getPath();
+			if (nbt.getLong("InhabitedTime").orElse(0L) >= Config.inhabitedTime) {
+				PrunedData.getServerState().updateRegion(path);
+			}
 		}
 	}
 }

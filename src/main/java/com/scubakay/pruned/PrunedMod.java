@@ -1,8 +1,8 @@
 package com.scubakay.pruned;
 
-import com.scubakay.pruned.command.LoginCommand;
+import com.scubakay.pruned.command.PrunedCommand;
 import com.scubakay.pruned.config.Config;
-import com.scubakay.pruned.data.BackupData;
+import com.scubakay.pruned.data.PrunedData;
 import dev.kikugie.fletching_table.annotation.fabric.Entrypoint;
 import eu.midnightdust.lib.config.MidnightConfig;
 import net.fabricmc.api.ModInitializer;
@@ -16,14 +16,10 @@ public class PrunedMod implements ModInitializer {
     public static final String MOD_ID = "pruned";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    public static String getSaveKey(String namespace) {
-        return "%s_%s".formatted(MOD_ID, namespace);
-    }
-
     @Override
     public void onInitialize() {
         MidnightConfig.init(MOD_ID, Config.class);
-        ServerLifecycleEvents.SERVER_STARTED.register(BackupData::setServer);
-        CommandRegistrationCallback.EVENT.register(LoginCommand::register);
+        ServerLifecycleEvents.SERVER_STARTED.register(PrunedData::setServer);
+        CommandRegistrationCallback.EVENT.register(PrunedCommand::register);
     }
 }
