@@ -22,14 +22,6 @@
   "license": "MIT",
   "icon": "assets/${id}/icon.png",
   "environment": "*",
-  "entrypoints": {
-    "main": [
-      "com.scubakay.pruned.PrunedMod"
-    ],
-    "client": [
-      "com.scubakay.pruned.PrunedModClient"
-    ]
-  },
   "depends": {
     "fabricloader": ">=0.16",
     "minecraft": "${range}",
