@@ -10,7 +10,7 @@ public class Config extends MidnightConfig {
     public static int inhabitedTime = 50;
     @Entry()
     public static List<String> ignored = Lists.newArrayList(
-            "prunedworlddownload_backupData.dat",
+            "pruned_backupData.dat",
             ".mca",
             ".sqlite*",
             ".dat_old",

@@ -1,0 +1,9 @@
+{
+  "pruned.midnightconfig.title": "Pruned",
+  "pruned.midnightconfig.inhabitedTime": "Minimum inhabited time",
+  "pruned.midnightconfig.inhabitedTime.tooltip": "The minimum time a chunk has to be inhabited before the region is added to the world download.",
+  "pruned.midnightconfig.ignored": "Ignored files",
+  "pruned.midnightconfig.ignored.tooltip": "Files ignored when uploading the world. Do not remove .mca files from this list.",
+  "pruned.midnightconfig.debug": "Debug mode",
+  "pruned.midnightconfig.debug.tooltip": "Debug mode adds additional logging."
+}
