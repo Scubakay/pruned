@@ -119,13 +119,28 @@ public class GoogleDriveStorage {
     }
 
     /**
+     * Finds a file by name in a specific parent folder.
+     */
+    private static File findFileInFolder(Drive service, String parentId, String fileName) throws IOException {
+        String query = String.format(
+            "name='%s' and '%s' in parents and trashed=false",
+            fileName, parentId
+        );
+        List<File> files = service.files().list()
+                .setQ(query)
+                .setSpaces("drive")
+                .setFields("files(id, name, parents)")
+                .execute()
+                .getFiles();
+        if (files != null && !files.isEmpty()) {
+            return files.getFirst();
+        }
+        return null;
+    }
+
+    /**
      * Uploads a specific file to Google Drive in the "pruned" folder, preserving subdirectory (region/entities).
-     *
-     * @param localFilePath The path to the local file to upload.
-     * @param mimeType The MIME type of the file.
-     * @param subFolderName The subfolder under "pruned" to upload to (e.g., "region", "entities").
-     * @return The uploaded file's ID.
-     * @throws IOException If an error occurs during upload.
+     * Overwrites existing file if one with the same name exists in the target folder.
      */
     public static String uploadFileToSubFolder(String localFilePath, String mimeType, String subFolderName) throws IOException {
         final NetHttpTransport HTTP_TRANSPORT = new NetHttpTransport();
@@ -135,22 +150,30 @@ public class GoogleDriveStorage {
                 .setApplicationName(APPLICATION_NAME)
                 .build();
 
-        // Get or create "pruned" folder
         String prunedFolderId = getOrCreatePrunedFolderId(service);
-
-        // Get or create subfolder (region/entities)
         String subFolderId = getOrCreateSubFolderId(service, prunedFolderId, subFolderName);
 
         java.io.File filePath = new java.io.File(localFilePath);
-        File fileMetadata = new File();
-        fileMetadata.setName(filePath.getName());
-        fileMetadata.setParents(Collections.singletonList(subFolderId));
+        String fileName = filePath.getName();
 
         FileContent mediaContent = new FileContent(mimeType, filePath);
 
-        File uploadedFile = service.files().create(fileMetadata, mediaContent)
-                .setFields("id, parents")
-                .execute();
+        File existingFile = findFileInFolder(service, subFolderId, fileName);
+        File uploadedFile;
+        if (existingFile != null) {
+            // Overwrite existing file
+            uploadedFile = service.files().update(existingFile.getId(), null, mediaContent)
+                    .setFields("id, parents")
+                    .execute();
+        } else {
+            // Create new file
+            File fileMetadata = new File();
+            fileMetadata.setName(fileName);
+            fileMetadata.setParents(Collections.singletonList(subFolderId));
+            uploadedFile = service.files().create(fileMetadata, mediaContent)
+                    .setFields("id, parents")
+                    .execute();
+        }
 
         if (uploadedFile.getParents() == null || !uploadedFile.getParents().contains(subFolderId)) {
             throw new IOException("File was not uploaded to the '" + subFolderName + "' folder.");
@@ -161,13 +184,7 @@ public class GoogleDriveStorage {
 
     /**
      * Uploads a file to Google Drive under the "pruned/worldName/relativePath" folder structure.
-     *
-     * @param localFilePath The path to the local file to upload.
-     * @param mimeType The MIME type of the file.
-     * @param worldName The top-level folder under "pruned".
-     * @param relativePath The relative path (with folders) from the base directory.
-     * @return The uploaded file's ID.
-     * @throws IOException If an error occurs during upload.
+     * Overwrites existing file if one with the same name exists in the target folder.
      */
     public static String uploadFileToSubFolderWithPath(String localFilePath, String mimeType, String worldName, String relativePath) throws IOException {
         final NetHttpTransport HTTP_TRANSPORT = new NetHttpTransport();
@@ -177,31 +194,35 @@ public class GoogleDriveStorage {
                 .setApplicationName(APPLICATION_NAME)
                 .build();
 
-        // Get or create "pruned" folder
         String prunedFolderId = getOrCreatePrunedFolderId(service);
-
-        // Get or create worldName folder under "pruned"
         String parentId = getOrCreateSubFolderId(service, prunedFolderId, worldName);
 
-        // Build folder structure for relativePath (excluding the file name)
         String[] parts = relativePath.split("/");
         for (int i = 0; i < parts.length - 1; i++) {
             parentId = getOrCreateSubFolderId(service, parentId, parts[i]);
         }
 
-        // The file name is the last part
         String fileName = parts.length > 0 ? parts[parts.length - 1] : new java.io.File(localFilePath).getName();
 
         java.io.File filePath = new java.io.File(localFilePath);
-        File fileMetadata = new File();
-        fileMetadata.setName(fileName);
-        fileMetadata.setParents(Collections.singletonList(parentId));
-
         FileContent mediaContent = new FileContent(mimeType, filePath);
 
-        File uploadedFile = service.files().create(fileMetadata, mediaContent)
-                .setFields("id, parents")
-                .execute();
+        File existingFile = findFileInFolder(service, parentId, fileName);
+        File uploadedFile;
+        if (existingFile != null) {
+            // Overwrite existing file
+            uploadedFile = service.files().update(existingFile.getId(), null, mediaContent)
+                    .setFields("id, parents")
+                    .execute();
+        } else {
+            // Create new file
+            File fileMetadata = new File();
+            fileMetadata.setName(fileName);
+            fileMetadata.setParents(Collections.singletonList(parentId));
+            uploadedFile = service.files().create(fileMetadata, mediaContent)
+                    .setFields("id, parents")
+                    .execute();
+        }
 
         if (uploadedFile.getParents() == null || !uploadedFile.getParents().contains(parentId)) {
             throw new IOException("File was not uploaded to the correct folder.");
