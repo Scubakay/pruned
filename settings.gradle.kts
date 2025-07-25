@@ -32,4 +32,4 @@ stonecutter {
     create(rootProject)
 }
 
-rootProject.name = "Pruned"
+rootProject.name = "Stonecutter Template"
