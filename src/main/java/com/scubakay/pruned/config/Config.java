@@ -10,7 +10,7 @@ public class Config extends MidnightConfig {
     public static int inhabitedTime = 50;
     @Entry()
     public static List<String> ignored = Lists.newArrayList(
-            "pruned_backupData.dat",
+            "pruned.dat",
             ".mca",
             ".sqlite*",
             ".dat_old",
@@ -18,4 +18,9 @@ public class Config extends MidnightConfig {
     );
     @Entry()
     public static boolean debug = false;
+
+    @Entry()
+    public static int regionSyncInterval = 60; // every minute
+    @Entry()
+    public static int worldSyncInterval = 900; // every 15 minutes
 }

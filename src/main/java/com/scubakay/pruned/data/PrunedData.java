@@ -1,7 +1,5 @@
 package com.scubakay.pruned.data;
 
-import com.scubakay.pruned.PrunedMod;
-import com.scubakay.pruned.config.Config;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.PersistentState;
@@ -49,9 +47,6 @@ public class PrunedData extends PersistentState {
 
     public void updateRegion(Path path) {
         this.regions.put(path.toString(), path);
-        if (Config.debug) {
-            PrunedMod.LOGGER.info("Updating region {}", path);
-        }
         this.markDirty();
     }
 
