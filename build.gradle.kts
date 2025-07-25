@@ -15,10 +15,6 @@ plugins {
 }
 
 //region Shadow libraries
-/**
- * Everything needed to shadow a library, example:
- * shadowAndRelocate("de.maxhenkel.configbuilder:configbuilder:2.0.2", "de.maxhenkel.configbuilder", "com.scubakay.autorelog.configbuilder")
- */
 val shadowLibrary = configurations.create("shadowLibrary") {
     isCanBeResolved = true
     isCanBeConsumed = false
@@ -74,6 +70,8 @@ class Environment {
     val modrinthVersionedRuntime = project.properties.filter { (dep, _) -> dep.startsWith("modrinth.runtime.") }
     val modrinthVersionedImplementation = project.properties.filter { (dep, _) -> dep.startsWith("modrinth.implementation.") }
     val modrinthVersionedInclude = project.properties.filter { (dep, _) -> dep.startsWith("modrinth.include.") }
+
+    val shadowedLibraries = project.properties.filter { (dep, _) -> dep.startsWith("shadow.") }
 
     fun checkSpecified(depName: String): Boolean {
         val property = findProperty(depName)
@@ -148,19 +146,17 @@ dependencies {
     }
 
     // Specific versions
-    env.modrinthVersionedRuntime.forEach { dep -> modLocalRuntime("maven.modrinth:${dep.key.removePrefix("modrinth.runtime.")}:${property(dep.key).toString()}-fabric") }
-    env.modrinthVersionedImplementation.forEach { dep -> modImplementation("maven.modrinth:${dep.key.removePrefix("modrinth.implementation.")}:${property(dep.key).toString()}-fabric") }
+    env.modrinthVersionedRuntime.forEach { dep -> modLocalRuntime("maven.modrinth:${dep.key.removePrefix("modrinth.runtime.")}:${property(dep.key).toString()}-${env.loader}") }
+    env.modrinthVersionedImplementation.forEach { dep -> modImplementation("maven.modrinth:${dep.key.removePrefix("modrinth.implementation.")}:${property(dep.key).toString()}-${env.loader}") }
     env.modrinthVersionedInclude.forEach { dep ->
-        modImplementation("maven.modrinth:${dep.key.removePrefix("modrinth.include.")}:${property(dep.key).toString()}-fabric")
-        include("maven.modrinth:${dep.key.removePrefix("modrinth.include.")}:${property(dep.key).toString()}-fabric")
+        modImplementation("maven.modrinth:${dep.key.removePrefix("modrinth.include.")}:${property(dep.key).toString()}-${env.loader}")
+        include("maven.modrinth:${dep.key.removePrefix("modrinth.include.")}:${property(dep.key).toString()}-${env.loader}")
     }
 
-    implementation("com.google.api-client:google-api-client:${property("google.api_client").toString()}")
-    shadowLibrary("com.google.api-client:google-api-client:${property("google.api_client").toString()}")
-    implementation("com.google.oauth-client:google-oauth-client-jetty:${property("google.oauth_client").toString()}")
-    shadowLibrary("com.google.oauth-client:google-oauth-client-jetty:${property("google.oauth_client").toString()}")
-    implementation("com.google.apis:google-api-services-drive:${property("google.drive").toString()}")
-    shadowLibrary("com.google.apis:google-api-services-drive:${property("google.drive").toString()}")
+    env.shadowedLibraries.forEach { dep ->
+        implementation("${dep.key.removePrefix("shadow.")}:${property(dep.key).toString()}")
+        shadowLibrary("${dep.key.removePrefix("shadow.")}:${property(dep.key).toString()}")
+    }
 }
 
 //region Building
