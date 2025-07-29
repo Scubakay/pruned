@@ -14,7 +14,7 @@ import java.nio.file.Path;
 
 public class UploadCommand {
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess ignoredRegistry, CommandManager.RegistrationEnvironment ignoredEnvironment) {
-        LiteralCommandNode<ServerCommandSource> uploadNode = CommandManager.literal("activate")
+        LiteralCommandNode<ServerCommandSource> uploadNode = CommandManager.literal("upload")
                 .executes(UploadCommand::upload)
                 .build();
         Commands.getRoot(dispatcher).addChild(uploadNode);
