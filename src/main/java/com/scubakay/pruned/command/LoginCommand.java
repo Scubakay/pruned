@@ -19,7 +19,7 @@ public class LoginCommand {
 
     private static int login(CommandContext<ServerCommandSource> source) {
         try {
-            GoogleDriveStorage.login();
+            GoogleDriveStorage.getInstance().login();
             source.getSource().sendFeedback(() -> Text.translatable("pruned.command.login.success"), false);
         } catch (Exception e) {
             source.getSource().sendError(Text.translatable("pruned.command.login.failed", e.getMessage()));

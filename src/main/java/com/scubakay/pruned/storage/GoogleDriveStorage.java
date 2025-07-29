@@ -1,10 +1,10 @@
 package com.scubakay.pruned.storage;
 
 import com.google.api.client.auth.oauth2.Credential;
-import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
 import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
@@ -13,11 +13,10 @@ import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import com.google.api.client.http.FileContent;
 import com.google.api.services.drive.DriveScopes;
+import com.scubakay.pruned.PrunedMod;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.List;
 
@@ -29,168 +28,45 @@ public class GoogleDriveStorage {
 
     private static final List<String> SCOPES =
             Collections.singletonList(DriveScopes.DRIVE_FILE);
+    private static NetHttpTransport HTTP_TRANSPORT;
 
-    public static void login() throws IOException {
-        getCredentials(new NetHttpTransport());
+    private final GoogleAuthorizationCodeFlow authorizationCodeFlow;
+    private final LocalServerReceiver receiver;
+    private Credential userCredentials;
+
+    private static GoogleDriveStorage instance;
+    public static GoogleDriveStorage getInstance() throws GeneralSecurityException, IOException {
+        if (instance == null) {
+            instance = new GoogleDriveStorage();
+        }
+        return instance;
     }
 
-    /**
-     * Creates an authorized Credential object.
-     *
-     * @return An authorized Credential object.
-     * @throws IOException If the credentials.json file cannot be found.
-     */
-    private static Credential getCredentials(NetHttpTransport HTTP_TRANSPORT)
-            throws IOException {
-        // Load client secrets from config folder in run directory.
-        java.io.File credentialsFile = new java.io.File(CREDENTIALS_FILE_PATH);
-        if (!credentialsFile.exists()) {
-            throw new FileNotFoundException("File not found: " + credentialsFile.getAbsolutePath());
-        }
-        InputStream in = new java.io.FileInputStream(credentialsFile);
-        GoogleClientSecrets clientSecrets =
-                GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
-
-        // Build flow and trigger user authorization request.
-        GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
+    private GoogleDriveStorage() throws GeneralSecurityException, IOException {
+        HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+        InputStream credentialsFile = getCredentialsFile();
+        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(credentialsFile));
+        authorizationCodeFlow = new GoogleAuthorizationCodeFlow.Builder(
                 HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)
                 .setDataStoreFactory(new FileDataStoreFactory(new java.io.File(TOKENS_DIRECTORY_PATH)))
                 .setAccessType("offline")
+                .setApprovalPrompt("force")
                 .build();
-        LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
-        //returns an authorized Credential object.
-        return new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
+        receiver = new LocalServerReceiver.Builder().setPort(8888).build();
     }
 
-    /**
-     * Finds or creates a folder named "pruned" in Google Drive and returns its ID.
-     */
-    private static String getOrCreatePrunedFolderId(Drive service) throws IOException {
-        // Search for folder named "pruned"
-        String query = "mimeType='application/vnd.google-apps.folder' and name='pruned' and trashed=false";
-        List<File> files = service.files().list()
-                .setQ(query)
-                .setSpaces("drive") // Ensure search is in My Drive
-                .setFields("files(id, name)")
-                .execute()
-                .getFiles();
-
-        if (files != null && !files.isEmpty()) {
-            return files.getFirst().getId();
-        }
-
-        // Create folder if not found
-        File folderMetadata = new File();
-        folderMetadata.setName("pruned");
-        folderMetadata.setMimeType("application/vnd.google-apps.folder");
-        File folder = service.files().create(folderMetadata)
-                .setFields("id")
-                .execute();
-        return folder.getId();
-    }
-
-    /**
-     * Finds or creates a folder with the given name under the specified parent folder in Google Drive.
-     */
-    private static String getOrCreateSubFolderId(Drive service, String parentId, String subFolderName) throws IOException {
-        String query = String.format(
-            "mimeType='application/vnd.google-apps.folder' and name='%s' and '%s' in parents and trashed=false",
-            subFolderName, parentId
-        );
-        List<File> files = service.files().list()
-                .setQ(query)
-                .setSpaces("drive")
-                .setFields("files(id, name)")
-                .execute()
-                .getFiles();
-
-        if (files != null && !files.isEmpty()) {
-            return files.getFirst().getId();
-        }
-
-        File folderMetadata = new File();
-        folderMetadata.setName(subFolderName);
-        folderMetadata.setMimeType("application/vnd.google-apps.folder");
-        folderMetadata.setParents(Collections.singletonList(parentId));
-        File folder = service.files().create(folderMetadata)
-                .setFields("id")
-                .execute();
-        return folder.getId();
-    }
-
-    /**
-     * Finds a file by name in a specific parent folder.
-     */
-    private static File findFileInFolder(Drive service, String parentId, String fileName) throws IOException {
-        String query = String.format(
-            "name='%s' and '%s' in parents and trashed=false",
-            fileName, parentId
-        );
-        List<File> files = service.files().list()
-                .setQ(query)
-                .setSpaces("drive")
-                .setFields("files(id, name, parents)")
-                .execute()
-                .getFiles();
-        if (files != null && !files.isEmpty()) {
-            return files.getFirst();
-        }
-        return null;
-    }
-
-    /**
-     * Uploads a specific file to Google Drive in the "pruned" folder, preserving subdirectory (region/entities).
-     * Overwrites existing file if one with the same name exists in the target folder.
-     */
-    public static String uploadFileToSubFolder(String localFilePath, String mimeType, String subFolderName) throws IOException {
-        final NetHttpTransport HTTP_TRANSPORT = new NetHttpTransport();
-        Credential credential = getCredentials(HTTP_TRANSPORT);
-
-        Drive service = new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
-                .setApplicationName(APPLICATION_NAME)
-                .build();
-
-        String prunedFolderId = getOrCreatePrunedFolderId(service);
-        String subFolderId = getOrCreateSubFolderId(service, prunedFolderId, subFolderName);
-
-        java.io.File filePath = new java.io.File(localFilePath);
-        String fileName = filePath.getName();
-
-        FileContent mediaContent = new FileContent(mimeType, filePath);
-
-        File existingFile = findFileInFolder(service, subFolderId, fileName);
-        File uploadedFile;
-        if (existingFile != null) {
-            // Overwrite existing file
-            uploadedFile = service.files().update(existingFile.getId(), null, mediaContent)
-                    .setFields("id, parents")
-                    .execute();
-        } else {
-            // Create new file
-            File fileMetadata = new File();
-            fileMetadata.setName(fileName);
-            fileMetadata.setParents(Collections.singletonList(subFolderId));
-            uploadedFile = service.files().create(fileMetadata, mediaContent)
-                    .setFields("id, parents")
-                    .execute();
-        }
-
-        if (uploadedFile.getParents() == null || !uploadedFile.getParents().contains(subFolderId)) {
-            throw new IOException("File was not uploaded to the '" + subFolderName + "' folder.");
-        }
-
-        return uploadedFile.getId();
+    public void login() {
+        getCredentials();
     }
 
     /**
      * Uploads a file to Google Drive under the "pruned/worldName/relativePath" folder structure.
-     * Overwrites existing file if one with the same name exists in the target folder.
+     * Overwrites existing file if one with the same name exists credentialsFile the target folder.
      */
-    public static String uploadFileToSubFolderWithPath(String localFilePath, String mimeType, String worldName, String relativePath) throws IOException {
-        final NetHttpTransport HTTP_TRANSPORT = new NetHttpTransport();
-        Credential credential = getCredentials(HTTP_TRANSPORT);
+    public void uploadFileToSubFolderWithPath(String localFilePath, String mimeType, String worldName, String relativePath) throws IOException {
+        getCredentials();
 
-        Drive service = new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
+        Drive service = new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, userCredentials)
                 .setApplicationName(APPLICATION_NAME)
                 .build();
 
@@ -227,7 +103,114 @@ public class GoogleDriveStorage {
         if (uploadedFile.getParents() == null || !uploadedFile.getParents().contains(parentId)) {
             throw new IOException("File was not uploaded to the correct folder.");
         }
+    }
 
-        return uploadedFile.getId();
+    /**
+     * Creates an authorized Credential object.
+     */
+    private void getCredentials() {
+        if (this.userCredentials != null) {
+            return;
+        }
+        try {
+            PrunedMod.LOGGER.info("Loading credentials");
+            this.userCredentials = this.authorizationCodeFlow.loadCredential("user");
+            if (this.userCredentials == null) {
+                this.userCredentials = new com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp(
+                    this.authorizationCodeFlow, this.receiver).authorize("user");
+            }
+        } catch(IOException e) {
+            PrunedMod.LOGGER.error("Couldn't load credentials", e);
+        }
+    }
+
+    private FileInputStream getCredentialsFile() throws FileNotFoundException {
+        java.io.File credentialsFile = new java.io.File(CREDENTIALS_FILE_PATH);
+        if (!credentialsFile.exists()) {
+            throw new FileNotFoundException("File not found: " + credentialsFile.getAbsolutePath());
+        }
+        return new FileInputStream(credentialsFile);
+    }
+
+
+    /**
+     * Finds or creates a folder named "pruned" credentialsFile Google Drive and returns its ID.
+     */
+    private String getOrCreatePrunedFolderId(Drive service) throws IOException {
+        getCredentials();
+
+        String query = "mimeType='application/vnd.google-apps.folder' and name='pruned' and trashed=false";
+        List<File> files = service.files().list()
+                .setQ(query)
+                .setSpaces("drive") // Ensure search is credentialsFile My Drive
+                .setFields("files(id, name)")
+                .execute()
+                .getFiles();
+
+        if (files != null && !files.isEmpty()) {
+            return files.getFirst().getId();
+        }
+
+        // Create folder if not found
+        File folderMetadata = new File();
+        folderMetadata.setName("pruned");
+        folderMetadata.setMimeType("application/vnd.google-apps.folder");
+        File folder = service.files().create(folderMetadata)
+                .setFields("id")
+                .execute();
+        return folder.getId();
+    }
+
+    /**
+     * Finds or creates a folder with the given name under the specified parent folder credentialsFile Google Drive.
+     */
+    private String getOrCreateSubFolderId(Drive service, String parentId, String subFolderName) throws IOException {
+        getCredentials();
+
+        String query = String.format(
+            "mimeType='application/vnd.google-apps.folder' and name='%s' and '%s' in parents and trashed=false",
+            subFolderName, parentId
+        );
+        List<File> files = service.files().list()
+                .setQ(query)
+                .setSpaces("drive")
+                .setFields("files(id, name)")
+                .execute()
+                .getFiles();
+
+        if (files != null && !files.isEmpty()) {
+            return files.getFirst().getId();
+        }
+
+        File folderMetadata = new File();
+        folderMetadata.setName(subFolderName);
+        folderMetadata.setMimeType("application/vnd.google-apps.folder");
+        folderMetadata.setParents(Collections.singletonList(parentId));
+        File folder = service.files().create(folderMetadata)
+                .setFields("id")
+                .execute();
+        return folder.getId();
+    }
+
+    /**
+     * Finds a file by name credentialsFile a specific parent folder.
+     */
+    private File findFileInFolder(Drive service, String parentId, String fileName) throws IOException {
+        getCredentials();
+
+        String query = String.format(
+            "name='%s' and '%s' in parents and trashed=false",
+            fileName, parentId
+        );
+        List<File> files = service.files().list()
+                .setQ(query)
+                .setSpaces("drive")
+                .setFields("files(id, name, parents)")
+                .execute()
+                .getFiles();
+        if (files != null && !files.isEmpty()) {
+            return files.getFirst();
+        }
+        return null;
     }
 }

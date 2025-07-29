@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Files;
 import java.nio.file.DirectoryStream;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
@@ -21,7 +22,7 @@ import java.util.concurrent.Executors;
 
 @SuppressWarnings("CallToPrintStackTrace")
 public class WorldUploader {
-    // Single-threaded executor for uploads (can be changed to multi-threaded if needed)
+    // Single-threaded executor for uploads (can be changed to multithreaded if needed)
     private static final ExecutorService uploadExecutor = Executors.newSingleThreadExecutor();
     private static ScheduledExecutorService scheduler;
 
@@ -125,7 +126,7 @@ public class WorldUploader {
     private static void uploadFile(String worldName, Path entry, String finalMimeType, String relativePath) {
         uploadExecutor.submit(() -> {
             try {
-                GoogleDriveStorage.uploadFileToSubFolderWithPath(
+                GoogleDriveStorage.getInstance().uploadFileToSubFolderWithPath(
                         entry.toAbsolutePath().toString(),
                         finalMimeType,
                         worldName,
@@ -134,7 +135,7 @@ public class WorldUploader {
                 if (Config.debug) {
                     PrunedMod.LOGGER.info("Synchronized {}", entry.toAbsolutePath());
                 }
-            } catch (IOException e) {
+            } catch (IOException | GeneralSecurityException e) {
                 PrunedMod.LOGGER.info("Something went wrong trying to upload {}", entry.toAbsolutePath());
                 e.printStackTrace();
             }
