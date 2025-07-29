@@ -16,7 +16,7 @@ public class ActivateCommand {
                 .build();
         Commands.getRoot(dispatcher).addChild(activateNode);
 
-        LiteralCommandNode<ServerCommandSource> deactivateNode = CommandManager.literal("activate")
+        LiteralCommandNode<ServerCommandSource> deactivateNode = CommandManager.literal("deactivate")
                 .executes(ActivateCommand::deactivate)
                 .build();
         Commands.getRoot(dispatcher).addChild(deactivateNode);
