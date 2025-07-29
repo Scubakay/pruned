@@ -2,6 +2,9 @@ package com.scubakay.pruned.storage;
 
 import com.scubakay.pruned.PrunedMod;
 import com.scubakay.pruned.config.Config;
+import com.scubakay.pruned.data.PrunedData;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.WorldSavePath;
 
 import java.nio.file.Path;
 import java.nio.file.Files;
@@ -9,6 +12,8 @@ import java.nio.file.DirectoryStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.concurrent.ExecutorService;
@@ -18,6 +23,58 @@ import java.util.concurrent.Executors;
 public class WorldUploader {
     // Single-threaded executor for uploads (can be changed to multi-threaded if needed)
     private static final ExecutorService uploadExecutor = Executors.newSingleThreadExecutor();
+    private static ScheduledExecutorService scheduler;
+
+    /**
+     * Returns the folder name (last directory) of the given path.
+     * If the path points to a file, returns its parent folder name.
+     */
+    public static String getWorldName(Path path) {
+        return path.getParent().getFileName().toString();
+    }
+
+    public static void scheduleWorldSync(MinecraftServer server) {
+        PrunedData.setServer(server);
+        if (!Config.autoSync || !PrunedData.getServerState().isActive()) {
+            return;
+        }
+
+        Path path = server.getSavePath(WorldSavePath.ROOT);
+        scheduler = Executors.newScheduledThreadPool(2);
+
+        if (Config.debug) {
+            PrunedMod.LOGGER.info("Uploading updated regions every {} seconds", Config.regionSyncInterval);
+        }
+
+        // Schedule region sync
+        scheduler.scheduleAtFixedRate(
+                () -> synchronizeDirty(path, PrunedData.getServerState(server).getRegions()),
+                Config.regionSyncInterval, // initial delay
+                Config.regionSyncInterval, // period
+                TimeUnit.SECONDS
+        );
+
+        if (Config.debug) {
+            PrunedMod.LOGGER.info("Uploading non-region world files every {} seconds", Config.worldSyncInterval);
+        }
+
+        // Schedule world sync
+        scheduler.scheduleAtFixedRate(
+                () -> synchronizeWithIgnoreList(path),
+                Config.worldSyncInterval, // initial delay
+                Config.worldSyncInterval, // period
+                TimeUnit.SECONDS
+        );
+    }
+
+    public static void scheduleWorldSyncEnd(MinecraftServer ignoredServer) {
+        if (scheduler != null && !scheduler.isShutdown()) {
+            scheduler.shutdown(); // Allow running tasks to finish
+        }
+        if (Config.debug) {
+            PrunedMod.LOGGER.info("Stopping world uploads. Currently running uploads will continue.");
+        }
+    }
 
     public static void synchronizeDirty(Path path, Map<String, Path> regions) {
         String worldName = getWorldName(path);
@@ -133,13 +190,5 @@ public class WorldUploader {
 
         sb.append("$");
         return sb.toString();
-    }
-
-    /**
-     * Returns the folder name (last directory) of the given path.
-     * If the path points to a file, returns its parent folder name.
-     */
-    public static String getWorldName(Path path) {
-        return path.getParent().getFileName().toString();
     }
 }
