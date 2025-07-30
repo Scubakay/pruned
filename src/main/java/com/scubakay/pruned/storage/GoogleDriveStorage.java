@@ -20,7 +20,7 @@ import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.List;
 
-public class GoogleDriveStorage {
+public class GoogleDriveStorage extends CloudStorage {
     private static final String APPLICATION_NAME = "Pruned";
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     private static final String TOKENS_DIRECTORY_PATH = "tokens";
@@ -35,9 +35,13 @@ public class GoogleDriveStorage {
     private Credential userCredentials;
 
     private static GoogleDriveStorage instance;
-    public static GoogleDriveStorage getInstance() throws GeneralSecurityException, IOException {
+    public static GoogleDriveStorage getInstance() {
         if (instance == null) {
-            instance = new GoogleDriveStorage();
+            try {
+                instance = new GoogleDriveStorage();
+            } catch (GeneralSecurityException | IOException e) {
+                throw new RuntimeException(e);
+            }
         }
         return instance;
     }

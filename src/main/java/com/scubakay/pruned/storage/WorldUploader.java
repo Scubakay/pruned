@@ -10,7 +10,6 @@ import java.nio.file.Path;
 import java.nio.file.Files;
 import java.nio.file.DirectoryStream;
 import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
@@ -148,7 +147,7 @@ public class WorldUploader {
                 if (Config.debug) {
                     PrunedMod.LOGGER.info("Synchronized {}", absPath);
                 }
-            } catch (IOException | GeneralSecurityException e) {
+            } catch (IOException e) {
                 PrunedMod.LOGGER.info("Something went wrong trying to upload {}", absPath);
                 e.printStackTrace();
             } finally {
