@@ -19,12 +19,17 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @SuppressWarnings("CallToPrintStackTrace")
 public class WorldUploader {
     // Single-threaded executor for uploads (can be changed to multithreaded if needed)
     private static final ExecutorService uploadExecutor = Executors.newSingleThreadExecutor();
     private static ScheduledExecutorService scheduler;
+
+    // Track files currently queued or uploading
+    private static final Set<String> uploadingFiles = ConcurrentHashMap.newKeySet();
 
     /**
      * Returns the folder name (last directory) of the given path.
@@ -124,20 +129,30 @@ public class WorldUploader {
     }
 
     private static void uploadFile(String worldName, Path entry, String finalMimeType, String relativePath) {
+        String absPath = entry.toAbsolutePath().toString();
+        // Deduplication: only queue if not already uploading
+        if (!uploadingFiles.add(absPath)) {
+            if (Config.debug) {
+                PrunedMod.LOGGER.info("Skipping duplicate upload for {}: File is already queued", absPath);
+            }
+            return;
+        }
         uploadExecutor.submit(() -> {
             try {
                 GoogleDriveStorage.getInstance().uploadFileToSubFolderWithPath(
-                        entry.toAbsolutePath().toString(),
+                        absPath,
                         finalMimeType,
                         worldName,
                         relativePath
                 );
                 if (Config.debug) {
-                    PrunedMod.LOGGER.info("Synchronized {}", entry.toAbsolutePath());
+                    PrunedMod.LOGGER.info("Synchronized {}", absPath);
                 }
             } catch (IOException | GeneralSecurityException e) {
-                PrunedMod.LOGGER.info("Something went wrong trying to upload {}", entry.toAbsolutePath());
+                PrunedMod.LOGGER.info("Something went wrong trying to upload {}", absPath);
                 e.printStackTrace();
+            } finally {
+                uploadingFiles.remove(absPath);
             }
         });
     }
