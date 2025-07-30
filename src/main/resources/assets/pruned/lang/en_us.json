@@ -14,6 +14,6 @@
   "pruned.midnightconfig.worldSyncInterval.tooltip": "The interval in seconds at which non-region files are synchronized",
   "pruned.command.activate": "Activated Pruned for world %s",
   "pruned.command.deactivate": "Deactivated Pruned for world %s",
-  "pruned.command.login.success": "Google Drive login successful or already authorized",
-  "pruned.command.login.failed": "Google Drive login failed: %s"
+  "pruned.command.login.success": "Login successful or already authorized",
+  "pruned.command.login.failed": "Login failed: %s"
 }

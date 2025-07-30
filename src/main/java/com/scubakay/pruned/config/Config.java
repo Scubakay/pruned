@@ -25,4 +25,12 @@ public class Config extends MidnightConfig {
     public static int regionSyncInterval = 60; // every minute
     @Entry()
     public static int worldSyncInterval = 900; // every 15 minutes
+
+    // TODO: REMOVE THE WEBDAV AUTH STUFF
+    @Entry()
+    public static String webDavEndpoint;
+    @Entry()
+    public static String webDavUsername;
+    @Entry()
+    public static String webDavPassword;
 }

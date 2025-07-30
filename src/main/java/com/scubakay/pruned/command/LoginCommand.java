@@ -3,7 +3,6 @@ package com.scubakay.pruned.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
-import com.scubakay.pruned.storage.GoogleDriveStorage;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -19,7 +18,7 @@ public class LoginCommand {
 
     private static int login(CommandContext<ServerCommandSource> source) {
         try {
-            GoogleDriveStorage.getInstance().login();
+            //WebDAVStorage.getInstance().login();
             source.getSource().sendFeedback(() -> Text.translatable("pruned.command.login.success"), false);
         } catch (Exception e) {
             source.getSource().sendError(Text.translatable("pruned.command.login.failed", e.getMessage()));
