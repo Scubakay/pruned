@@ -3,7 +3,6 @@ package com.scubakay.pruned.mixin;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.scubakay.pruned.config.Config;
 import com.scubakay.pruned.data.PrunedData;
-import com.scubakay.pruned.utility.ChunkUtility;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.storage.RegionBasedStorage;
@@ -31,7 +30,7 @@ public class RegionBasedStorageMixin {
 		PrunedData pruned = PrunedData.getServerState();
 		if (pruned != null && pruned.isActive()) {
 			if (nbt.getLong("InhabitedTime").orElse(0L) >= Config.inhabitedTime) {
-				Path path = ChunkUtility.chunkCoordToRegionFile(pos.x, pos.z);
+				final Path path = regionFile.getPath();
 				PrunedData.getServerState().updateRegion(path);
 			}
 		}
