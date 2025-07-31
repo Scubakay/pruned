@@ -29,7 +29,7 @@ public class RegionBasedStorageMixin {
 			))
 	private void pruned$injectRegionFileRegistration(ChunkPos pos, NbtCompound nbt, CallbackInfo ci, @Local RegionFile regionFile) {
 		PrunedData pruned = PrunedData.getServerState();
-		if (pruned.isActive()) {
+		if (pruned != null && pruned.isActive()) {
 			if (nbt.getLong("InhabitedTime").orElse(0L) >= Config.inhabitedTime) {
 				Path path = ChunkUtility.chunkCoordToRegionFile(pos.x, pos.z);
 				PrunedData.getServerState().updateRegion(path);

@@ -60,6 +60,7 @@ public class PrunedData extends PersistentState {
     }
 
     public static PrunedData getServerState() {
+        if (server == null) return null;
         ServerWorld serverWorld = server.getWorld(World.OVERWORLD);
         assert serverWorld != null;
         PrunedData state = getState(serverWorld);
