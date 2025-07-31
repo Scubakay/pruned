@@ -113,7 +113,7 @@ public class WorldUploader {
         }
     }
 
-    private static void uploadFile(String worldName, Path filePath, Path relativePath) {
+    public static void uploadFile(String worldName, Path filePath, Path relativePath) {
         if (uploadingFiles.add(filePath.toString())) {
             uploadExecutor.submit(() -> {
                 try {

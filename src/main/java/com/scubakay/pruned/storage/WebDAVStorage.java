@@ -5,11 +5,13 @@ import com.github.sardine.SardineFactory;
 import com.scubakay.pruned.PrunedMod;
 import com.scubakay.pruned.config.Config;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.file.Path;
 
 public class WebDAVStorage {
     private static WebDAVStorage instance;
-    private final Sardine sardine;
+    private Sardine sardine;
 
     private WebDAVStorage() {
         sardine = SardineFactory.begin(Config.webDavUsername, Config.webDavPassword);
@@ -23,13 +25,47 @@ public class WebDAVStorage {
     }
 
     public void uploadWorldFile(String worldName, Path localPath, Path relativePath) {
+        String normalizedRelativePath = relativePath.normalize().toString().replace("\\", "/");
+        String endpoint = Config.webDavEndpoint;
+        if (!endpoint.endsWith("/")) endpoint += "/";
+        String baseRemotePath = endpoint + "Pruned/" + worldName + "/";
+        String remotePath = baseRemotePath + normalizedRelativePath;
         try {
-            String normalizedRelativePath = relativePath.toString().replace("\\", "/");
-            String remotePath = Config.webDavEndpoint + worldName + "/" + normalizedRelativePath;
-            sardine.put(remotePath, new java.io.FileInputStream(localPath.toFile()));
-            if (Config.debug) PrunedMod.LOGGER.info("Uploaded {} to {}", localPath.getFileName(), normalizedRelativePath);
+            createWorldFolder(worldName, endpoint);
+            createParentDirectories(normalizedRelativePath, baseRemotePath);
+            sardine.put(remotePath, new FileInputStream(localPath.normalize().toFile()));
+            if (Config.debug) PrunedMod.LOGGER.info("Uploaded {} to {}", localPath.getFileName(), remotePath);
         } catch (Exception e) {
-            if (Config.debug) PrunedMod.LOGGER.error("Failed to upload {} to {}: {}", localPath, relativePath, e.getMessage());
+            if (Config.debug) PrunedMod.LOGGER.error("Failed to upload {} to {}: {}", localPath, remotePath, e.getMessage());
+        }
+    }
+
+    private void createWorldFolder(String worldName, String endpoint) {
+        final String prunedFolder = endpoint + "Pruned/";
+        final String worldFolder = prunedFolder + worldName + "/";
+        try {
+            sardine.createDirectory(prunedFolder);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            sardine.createDirectory(worldFolder);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void createParentDirectories(String normalizedRelativePath, String baseRemotePath) throws IOException {
+        String[] segments = normalizedRelativePath.split("/");
+        StringBuilder currentPath = new StringBuilder(baseRemotePath);
+        for (int i = 0; i < segments.length - 1; i++) {
+            currentPath.append(segments[i]).append("/");
+            String folderPath = currentPath.toString();
+            try {
+                sardine.list(folderPath); // Uses GET, sends credentials
+            } catch (IOException e) {
+                sardine.createDirectory(folderPath);
+            }
         }
     }
 }

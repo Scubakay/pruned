@@ -3,6 +3,7 @@ package com.scubakay.pruned.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
+import com.scubakay.pruned.data.PrunedData;
 import com.scubakay.pruned.storage.WorldUploader;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
@@ -21,7 +22,7 @@ public class UploadCommand {
 
     private static int upload(CommandContext<ServerCommandSource> source) {
         Path path = source.getSource().getServer().getSavePath(WorldSavePath.ROOT);
-        //WorldUploader.synchronizeDirty(path, PrunedData.getServerState(source.getSource().getServer()).getRegions());
+        WorldUploader.synchronizeDirty(path, PrunedData.getServerState(source.getSource().getServer()).getRegions());
         WorldUploader.synchronizeWithIgnoreList(path);
         return 1;
     }
