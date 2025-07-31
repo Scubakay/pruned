@@ -11,7 +11,7 @@ import java.nio.file.Path;
 
 public class WebDAVStorage {
     private static WebDAVStorage instance;
-    private Sardine sardine;
+    private final Sardine sardine;
 
     private WebDAVStorage() {
         sardine = SardineFactory.begin(Config.webDavUsername, Config.webDavPassword);
@@ -43,15 +43,16 @@ public class WebDAVStorage {
     private void createWorldFolder(String worldName, String endpoint) {
         final String prunedFolder = endpoint + "Pruned/";
         final String worldFolder = prunedFolder + worldName + "/";
+
         try {
-            sardine.createDirectory(prunedFolder);
+            if (!sardine.exists(worldFolder)) {
+                if (!sardine.exists(prunedFolder)) {
+                    sardine.createDirectory(prunedFolder);
+                }
+                sardine.createDirectory(worldFolder);
+            }
         } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        try {
-            sardine.createDirectory(worldFolder);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            if (Config.debug) PrunedMod.LOGGER.error("Something went wrong trying to create remote world directory: {}", e.getMessage());
         }
     }
 
