@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.Set;
@@ -85,40 +84,27 @@ public class WorldUploader {
         String worldName = getWorldName(path);
         Path sourceRoot = path.toAbsolutePath();
         regions.forEach((regionName, regionPath) -> {
-            Path absRegionPath = regionPath.toAbsolutePath();
-            // Compute the relative path from the source root to the file
-            Path relativePath = sourceRoot.relativize(absRegionPath);
-            uploadRegionFile(worldName, absRegionPath, relativePath);
+            Path absoluteRegionPath = regionPath.toAbsolutePath();
+            Path relativePath = sourceRoot.relativize(absoluteRegionPath);
+            uploadFile(worldName, absoluteRegionPath, relativePath);
         });
     }
 
     public static void synchronizeWithIgnoreList(Path path) {
-        List<Pattern> ignoredPatterns = Config.ignored.stream()
-                .map(WorldUploader::gitignorePatternToRegex)
-                .map(Pattern::compile)
-                .collect(Collectors.toList());
-
-        synchronizeRecursive(getWorldName(path), path, path, ignoredPatterns);
+        synchronizeRecursive(getWorldName(path), path, path);
     }
 
-    private static void synchronizeRecursive(String worldName, Path basePath, Path currentPath, List<Pattern> ignoredPatterns) {
+    private static void synchronizeRecursive(String worldName, Path basePath, Path currentPath) {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(currentPath)) {
             for (Path entry : stream) {
-                String relativePath = basePath.relativize(entry).toString().replace("\\", "/");
-                boolean ignored = ignoredPatterns.stream()
-                        .anyMatch(p -> p.matcher(relativePath).matches());
-                if (ignored) continue;
+                Path relativePath = basePath.relativize(entry);
 
-                if (Files.isDirectory(entry)) {
-                    synchronizeRecursive(worldName, basePath, entry, ignoredPatterns);
-                } else if (Files.isRegularFile(entry)) {
-                    String mimeType = Files.probeContentType(entry);
-                    if (mimeType == null) {
-                        mimeType = "application/octet-stream";
+                if (!isIgnored(relativePath)) {
+                    if (Files.isDirectory(entry)) {
+                        synchronizeRecursive(worldName, basePath, entry);
+                    } else if (Files.isRegularFile(entry)) {
+                        uploadFile(worldName, entry, relativePath);
                     }
-                    // Submit upload task to executor
-                    String finalMimeType = mimeType;
-                    uploadFile(worldName, entry, finalMimeType, relativePath);
                 }
             }
         } catch (IOException e) {
@@ -127,46 +113,26 @@ public class WorldUploader {
         }
     }
 
-    private static void uploadFile(String worldName, Path entry, String finalMimeType, String relativePath) {
-        String absPath = entry.toAbsolutePath().toString();
-        // Deduplication: only queue if not already uploading
-        if (!uploadingFiles.add(absPath)) {
-            if (Config.debug) {
-                PrunedMod.LOGGER.info("Skipping duplicate upload for {}: File is already queued", absPath);
-            }
-            return;
-        }
-        uploadExecutor.submit(() -> {
-            try {
-                WebDAVStorage.getInstance().uploadWorldFile(worldName, absPath, relativePath);
-                if (Config.debug) {
-                    PrunedMod.LOGGER.info("Synchronized {}", absPath);
+    private static void uploadFile(String worldName, Path filePath, Path relativePath) {
+        if (uploadingFiles.add(filePath.toString())) {
+            uploadExecutor.submit(() -> {
+                try {
+                    WebDAVStorage.getInstance().uploadWorldFile(worldName, filePath, relativePath);
+                } finally {
+                    uploadingFiles.remove(filePath.toString());
                 }
-            } finally {
-                uploadingFiles.remove(absPath);
-            }
-        });
-    }
-
-    // Upload a single file to Google Drive, preserving its relative path under worldName
-    private static void uploadRegionFile(String worldName, Path filePath, Path relativePath) {
-        if (Files.isRegularFile(filePath)) {
-            String mimeType;
-            try {
-                mimeType = Files.probeContentType(filePath);
-            } catch (IOException e) {
-                mimeType = "application/octet-stream";
-            }
-            if (mimeType == null) {
-                mimeType = "application/octet-stream";
-            }
-            // Submit upload task to executor
-            String finalMimeType = mimeType;
-            uploadFile(worldName, filePath, finalMimeType, relativePath.toString().replace("\\", "/"));
+            });
         }
     }
 
-    // Converts .gitignore-like patterns to regex
+    private static boolean isIgnored(Path relativePath) {
+        List<Pattern> ignoredPatterns = Config.ignored.stream()
+                .map(WorldUploader::gitignorePatternToRegex)
+                .map(Pattern::compile)
+                .toList();
+        return ignoredPatterns.stream().anyMatch(p -> p.matcher(relativePath.toString()).matches());
+    }
+
     private static String gitignorePatternToRegex(String pattern) {
         StringBuilder sb = new StringBuilder();
         boolean anchored = pattern.startsWith("/");
