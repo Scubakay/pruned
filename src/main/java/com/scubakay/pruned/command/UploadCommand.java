@@ -21,7 +21,7 @@ public class UploadCommand {
     }
 
     private static int upload(CommandContext<ServerCommandSource> source) {
-        Path path = source.getSource().getServer().getSavePath(WorldSavePath.ROOT);
+        Path path = source.getSource().getServer().getSavePath(WorldSavePath.ROOT).getParent();
         WorldUploader.synchronizeDirty(path, PrunedData.getServerState(source.getSource().getServer()).getRegions());
         WorldUploader.synchronizeWithIgnoreList(path);
         return 1;

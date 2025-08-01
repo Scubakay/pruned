@@ -7,6 +7,7 @@ import com.scubakay.pruned.config.Config;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Path;
 
 public class WebDAVStorage {
@@ -24,49 +25,51 @@ public class WebDAVStorage {
         return instance;
     }
 
-    public void uploadWorldFile(String worldName, Path localPath, Path relativePath) {
-        String normalizedRelativePath = relativePath.normalize().toString().replace("\\", "/");
-        String endpoint = Config.webDavEndpoint;
-        if (!endpoint.endsWith("/")) endpoint += "/";
-        String baseRemotePath = endpoint + "Pruned/" + worldName + "/";
-        String remotePath = baseRemotePath + normalizedRelativePath;
+    public void uploadWorldFile(Path filepath, Path relativePath) {
+        URI prunedFolder = getOrCreatePrunedFolder();
+        createParentRecursive(prunedFolder, relativePath);
+        URI fileUri = getFileUri(prunedFolder, relativePath);
         try {
-            createWorldFolder(worldName, endpoint);
-            createParentDirectories(normalizedRelativePath, baseRemotePath);
-            sardine.put(remotePath, new FileInputStream(localPath.normalize().toFile()));
-            if (Config.debug) PrunedMod.LOGGER.info("Uploaded {} to {}", localPath.getFileName(), remotePath);
+            sardine.put(fileUri.toString(), new FileInputStream(filepath.normalize().toFile()));
+            if (Config.debug) PrunedMod.LOGGER.info("Uploaded {} to {}", filepath.getFileName(), relativePath);
         } catch (Exception e) {
-            if (Config.debug) PrunedMod.LOGGER.error("Failed to upload {} to {}: {}", localPath, remotePath, e.getMessage());
+            if (Config.debug) PrunedMod.LOGGER.error("Failed to upload {} to {}: {}", filepath.getFileName(), relativePath, e.getMessage());
         }
     }
 
-    private void createWorldFolder(String worldName, String endpoint) {
-        final String prunedFolder = endpoint + "Pruned/";
-        final String worldFolder = prunedFolder + worldName + "/";
+    private URI getFileUri(URI prunedFolder, Path relativePath) {
+        return prunedFolder.resolve(relativePath.toString().replace("\\", "/"));
+    }
 
+    private void createParentRecursive(URI baseUri, Path relativePath) {
+        Path parent = relativePath.getParent();
+        if (parent == null) return;
+
+        createParentRecursive(baseUri, parent);
+        URI folderUri = baseUri.resolve(parent.toString().replace("\\", "/") + "/");
         try {
-            if (!sardine.exists(worldFolder)) {
-                if (!sardine.exists(prunedFolder)) {
-                    sardine.createDirectory(prunedFolder);
-                }
-                sardine.createDirectory(worldFolder);
+            if (!sardine.exists(folderUri.toString())) {
+                sardine.createDirectory(folderUri.toString());
             }
         } catch (IOException e) {
-            if (Config.debug) PrunedMod.LOGGER.error("Something went wrong trying to create remote world directory: {}", e.getMessage());
+            if (Config.debug) PrunedMod.LOGGER.error("Failed to create parent folder for {}: {}", relativePath, e.getMessage());
         }
     }
 
-    private void createParentDirectories(String normalizedRelativePath, String baseRemotePath) throws IOException {
-        String[] segments = normalizedRelativePath.split("/");
-        StringBuilder currentPath = new StringBuilder(baseRemotePath);
-        for (int i = 0; i < segments.length - 1; i++) {
-            currentPath.append(segments[i]).append("/");
-            String folderPath = currentPath.toString();
-            try {
-                sardine.list(folderPath); // Uses GET, sends credentials
-            } catch (IOException e) {
-                sardine.createDirectory(folderPath);
+    private URI getOrCreatePrunedFolder() {
+        String endpoint = Config.webDavEndpoint;
+        if (!endpoint.endsWith("/")) endpoint += "/";
+        endpoint += "Pruned/";
+        URI uri = URI.create(endpoint);
+
+        try {
+            if (!sardine.exists(uri.toString())) {
+                sardine.createDirectory(uri.toString());
             }
+        } catch (IOException e) {
+            if (Config.debug) PrunedMod.LOGGER.error("Failed to create pruned folder: {}", e.getMessage());
         }
+
+        return uri;
     }
 }

@@ -29,14 +29,6 @@ public class WorldUploader {
     // Track files currently queued or uploading
     private static final Set<String> uploadingFiles = ConcurrentHashMap.newKeySet();
 
-    /**
-     * Returns the folder name (last directory) of the given path.
-     * If the path points to a file, returns its parent folder name.
-     */
-    public static String getWorldName(Path path) {
-        return path.getParent().getFileName().toString();
-    }
-
     public static void scheduleWorldSync(MinecraftServer server) {
         PrunedData.setServer(server);
         if (!Config.autoSync || !PrunedData.getServerState().isActive()) {
@@ -81,29 +73,26 @@ public class WorldUploader {
     }
 
     public static void synchronizeDirty(Path path, Map<String, Path> regions) {
-        String worldName = getWorldName(path);
-        Path sourceRoot = path.toAbsolutePath();
         regions.forEach((regionName, regionPath) -> {
-            Path absoluteRegionPath = regionPath.toAbsolutePath();
-            Path relativePath = sourceRoot.relativize(absoluteRegionPath);
-            uploadFile(worldName, absoluteRegionPath, relativePath);
+            Path relativePath = path.getParent().relativize(regionPath);
+            uploadFile(regionPath, relativePath);
         });
     }
 
     public static void synchronizeWithIgnoreList(Path path) {
-        synchronizeRecursive(getWorldName(path), path, path);
+        synchronizeRecursive(path.getParent(), path);
     }
 
-    private static void synchronizeRecursive(String worldName, Path basePath, Path currentPath) {
+    private static void synchronizeRecursive(Path basePath, Path currentPath) {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(currentPath)) {
             for (Path entry : stream) {
                 Path relativePath = basePath.relativize(entry);
 
                 if (!isIgnored(relativePath)) {
                     if (Files.isDirectory(entry)) {
-                        synchronizeRecursive(worldName, basePath, entry);
+                        synchronizeRecursive(basePath, entry);
                     } else if (Files.isRegularFile(entry)) {
-                        uploadFile(worldName, entry, relativePath);
+                        uploadFile(entry, relativePath);
                     }
                 }
             }
@@ -113,11 +102,11 @@ public class WorldUploader {
         }
     }
 
-    public static void uploadFile(String worldName, Path filePath, Path relativePath) {
+    public static void uploadFile(Path filePath, Path relativePath) {
         if (uploadingFiles.add(filePath.toString())) {
             uploadExecutor.submit(() -> {
                 try {
-                    WebDAVStorage.getInstance().uploadWorldFile(worldName, filePath, relativePath);
+                    WebDAVStorage.getInstance().uploadWorldFile(filePath, relativePath);
                 } finally {
                     uploadingFiles.remove(filePath.toString());
                 }
