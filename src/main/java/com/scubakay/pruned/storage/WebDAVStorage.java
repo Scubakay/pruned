@@ -48,9 +48,7 @@ public class WebDAVStorage {
         createParentRecursive(baseUri, parent);
         URI folderUri = baseUri.resolve(parent.toString().replace("\\", "/") + "/");
         try {
-            if (!sardine.exists(folderUri.toString())) {
-                sardine.createDirectory(folderUri.toString());
-            }
+            sardine.createDirectory(folderUri.toString());
         } catch (IOException e) {
             if (Config.debug) PrunedMod.LOGGER.error("Failed to create parent folder for {}: {}", relativePath, e.getMessage());
         }
@@ -63,9 +61,7 @@ public class WebDAVStorage {
         URI uri = URI.create(endpoint);
 
         try {
-            if (!sardine.exists(uri.toString())) {
-                sardine.createDirectory(uri.toString());
-            }
+            sardine.createDirectory(uri.toString());
         } catch (IOException e) {
             if (Config.debug) PrunedMod.LOGGER.error("Failed to create pruned folder: {}", e.getMessage());
         }
