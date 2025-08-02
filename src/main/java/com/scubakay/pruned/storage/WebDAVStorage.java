@@ -47,27 +47,32 @@ public class WebDAVStorage {
 
         createParentRecursive(baseUri, parent);
         URI folderUri = baseUri.resolve(parent.toString().replace("\\", "/") + "/");
-        try {
-            sardine.createDirectory(folderUri.toString());
-            if (Config.debug) PrunedMod.LOGGER.error("Created parent folder for {}", relativePath);
-        } catch (IOException e) {
-            if (Config.debug) PrunedMod.LOGGER.error("Failed to create parent folder for {}: {}", relativePath, e.getMessage());
-        }
+        getOrCreateFolder(folderUri);
     }
 
     private URI getOrCreatePrunedFolder() {
+        return getOrCreateFolder(getPrunedUri());
+    }
+
+    private URI getOrCreateFolder(URI uri) {
+        try {
+            sardine.createDirectory(uri.toString());
+            if (Config.debug) PrunedMod.LOGGER.info("Created pruned folder");
+        } catch (IOException e) {
+            if (e.getMessage() != null && e.getMessage().contains("405")) {
+                // 405 Method Not Allowed: treat as folder already exists
+                if (Config.debug) PrunedMod.LOGGER.info("Folder already exists (405) at: {}", uri);
+            } else {
+                if (Config.debug) PrunedMod.LOGGER.error("Failed to create pruned folder: {}", e.getMessage());
+            }
+        }
+        return uri;
+    }
+
+    private static URI getPrunedUri() {
         String endpoint = Config.webDavEndpoint;
         if (!endpoint.endsWith("/")) endpoint += "/";
         endpoint += "Pruned/";
-        URI uri = URI.create(endpoint);
-
-        try {
-            sardine.createDirectory(uri.toString());
-            if (Config.debug) PrunedMod.LOGGER.error("Created pruned folder");
-        } catch (IOException e) {
-            if (Config.debug) PrunedMod.LOGGER.error("Failed to create pruned folder: {}", e.getMessage());
-        }
-
-        return uri;
+        return URI.create(endpoint);
     }
 }
