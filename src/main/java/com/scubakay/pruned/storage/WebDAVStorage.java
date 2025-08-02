@@ -5,7 +5,6 @@ import com.github.sardine.SardineFactory;
 import com.scubakay.pruned.PrunedMod;
 import com.scubakay.pruned.config.Config;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
@@ -30,7 +29,8 @@ public class WebDAVStorage {
         createParentRecursive(prunedFolder, relativePath);
         URI fileUri = getFileUri(prunedFolder, relativePath);
         try {
-            sardine.put(fileUri.toString(), new FileInputStream(filepath.normalize().toFile()));
+            byte[] fileBytes = java.nio.file.Files.readAllBytes(filepath.normalize());
+            sardine.put(fileUri.toString(), fileBytes);
             if (Config.debug) PrunedMod.LOGGER.info("Uploaded {} to {}", filepath.getFileName(), relativePath);
         } catch (Exception e) {
             if (Config.debug) PrunedMod.LOGGER.error("Failed to upload {} to {}: {}", filepath.getFileName(), relativePath, e.getMessage());
@@ -49,6 +49,7 @@ public class WebDAVStorage {
         URI folderUri = baseUri.resolve(parent.toString().replace("\\", "/") + "/");
         try {
             sardine.createDirectory(folderUri.toString());
+            if (Config.debug) PrunedMod.LOGGER.error("Created parent folder for {}", relativePath);
         } catch (IOException e) {
             if (Config.debug) PrunedMod.LOGGER.error("Failed to create parent folder for {}: {}", relativePath, e.getMessage());
         }
@@ -62,6 +63,7 @@ public class WebDAVStorage {
 
         try {
             sardine.createDirectory(uri.toString());
+            if (Config.debug) PrunedMod.LOGGER.error("Created pruned folder");
         } catch (IOException e) {
             if (Config.debug) PrunedMod.LOGGER.error("Failed to create pruned folder: {}", e.getMessage());
         }
