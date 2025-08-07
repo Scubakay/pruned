@@ -6,7 +6,9 @@ import com.scubakay.pruned.PrunedMod;
 import com.scubakay.pruned.config.Config;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
 import java.nio.file.Path;
 
 public class WebDAVStorage {
@@ -25,36 +27,56 @@ public class WebDAVStorage {
     }
 
     public void uploadWorldFile(Path filepath, Path relativePath) {
-        URI prunedFolder = getOrCreatePrunedFolder();
-        createParentRecursive(prunedFolder, relativePath);
-        URI fileUri = getFileUri(prunedFolder, relativePath);
         try {
+            URL prunedFolder = getOrCreatePrunedFolder();
+            createParentRecursive(prunedFolder, relativePath);
+            URL fileUri = getFileUri(prunedFolder, relativePath);
+
             byte[] fileBytes = java.nio.file.Files.readAllBytes(filepath.normalize());
             sardine.put(fileUri.toString(), fileBytes);
             if (Config.debug) PrunedMod.LOGGER.info("Uploaded {} to {}", filepath.getFileName(), relativePath);
+        } catch (MalformedURLException e) {
+            if (Config.debug) PrunedMod.LOGGER.error("Could not form URL: {}", e.getMessage());
         } catch (Exception e) {
             if (Config.debug) PrunedMod.LOGGER.error("Failed to upload {} to {}: {}", filepath.getFileName(), relativePath, e.getMessage());
         }
     }
 
-    private URI getFileUri(URI prunedFolder, Path relativePath) {
-        return prunedFolder.resolve(relativePath.toString().replace("\\", "/"));
+    private URL getFileUri(URL prunedFolder, Path relativePath) throws MalformedURLException {
+        // Encode each segment of the relative path
+        StringBuilder encodedPath = new StringBuilder();
+        for (Path segment : relativePath) {
+            encodedPath.append(java.net.URLEncoder.encode(segment.toString(), java.nio.charset.StandardCharsets.UTF_8)).append("/");
+        }
+        // Remove trailing slash if not a directory
+        if (!encodedPath.isEmpty() && !relativePath.toString().endsWith("/")) {
+            encodedPath.setLength(encodedPath.length() - 1);
+        }
+        try {
+            return prunedFolder.toURI().resolve(encodedPath.toString()).toURL();
+        } catch (Exception e) {
+            throw new MalformedURLException("Failed to resolve URL: " + e.getMessage());
+        }
     }
 
-    private void createParentRecursive(URI baseUri, Path relativePath) {
+    private void createParentRecursive(URL baseUrl, Path relativePath) {
         Path parent = relativePath.getParent();
         if (parent == null) return;
 
-        createParentRecursive(baseUri, parent);
-        URI folderUri = baseUri.resolve(parent.toString().replace("\\", "/") + "/");
-        getOrCreateFolder(folderUri);
+        try {
+            createParentRecursive(baseUrl, parent);
+            URL folderUri = getFileUri(baseUrl, parent);
+            getOrCreateFolder(folderUri);
+        } catch (MalformedURLException e) {
+            if (Config.debug) PrunedMod.LOGGER.info("Malformed URL: {} + {}; {}", baseUrl, relativePath, e.getMessage());
+        }
     }
 
-    private URI getOrCreatePrunedFolder() {
+    private URL getOrCreatePrunedFolder() throws MalformedURLException {
         return getOrCreateFolder(getPrunedUri());
     }
 
-    private URI getOrCreateFolder(URI uri) {
+    private URL getOrCreateFolder(URL uri) {
         try {
             sardine.createDirectory(uri.toString());
             if (Config.debug) PrunedMod.LOGGER.info("Created pruned folder");
@@ -69,10 +91,10 @@ public class WebDAVStorage {
         return uri;
     }
 
-    private static URI getPrunedUri() {
+    private static URL getPrunedUri() throws MalformedURLException {
         String endpoint = Config.webDavEndpoint;
         if (!endpoint.endsWith("/")) endpoint += "/";
         endpoint += "Pruned/";
-        return URI.create(endpoint);
+        return URI.create(endpoint).toURL();
     }
 }
