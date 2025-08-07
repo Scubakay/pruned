@@ -8,7 +8,9 @@ import com.scubakay.pruned.config.Config;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class WebDAVStorage {
@@ -27,50 +29,47 @@ public class WebDAVStorage {
     }
 
     public void uploadWorldFile(Path filepath, Path relativePath) {
+        URL fileUri = null;
+        String mimeType = "";
         try {
             URL prunedFolder = getOrCreatePrunedFolder();
             createParentRecursive(prunedFolder, relativePath);
-            URL fileUri = getFileUri(prunedFolder, relativePath);
 
-            byte[] fileBytes = java.nio.file.Files.readAllBytes(filepath.normalize());
-            sardine.put(fileUri.toString(), fileBytes);
-            if (Config.debug) PrunedMod.LOGGER.info("Uploaded {} to {}", filepath.getFileName(), relativePath);
-        } catch (MalformedURLException e) {
+            fileUri = getUrl(prunedFolder, relativePath, true);
+            mimeType = Files.probeContentType(filepath);
+            if (mimeType == null) mimeType = "application/octet-stream";
+            byte[] fileBytes = Files.readAllBytes(filepath.normalize());
+
+            sardine.put(fileUri.toString(), fileBytes, mimeType);
+            if (Config.debug) PrunedMod.LOGGER.info("Uploaded {} to {}", filepath.getFileName(), fileUri);
+        } catch (MalformedURLException | URISyntaxException e) {
             if (Config.debug) PrunedMod.LOGGER.error("Could not form URL: {}", e.getMessage());
         } catch (Exception e) {
-            if (Config.debug) PrunedMod.LOGGER.error("Failed to upload {} to {}: {}", filepath.getFileName(), relativePath, e.getMessage());
+            if (Config.debug) PrunedMod.LOGGER.error("Failed to upload {} file {} to {}: {}", mimeType, filepath.getFileName(), fileUri, e.getMessage());
         }
     }
 
-    private URL getFileUri(URL prunedFolder, Path relativePath) throws MalformedURLException {
-        // Encode each segment of the relative path for URL path (spaces as %20, not +)
+    private URL getUrl(URL prunedFolder, Path relativePath, boolean isFile) throws MalformedURLException, URISyntaxException {
         StringBuilder encodedPath = new StringBuilder();
         for (Path segment : relativePath) {
-            String s = segment.toString();
-            // Replace spaces with %20 and leave other characters as-is
-            s = s.replace(" ", "%20");
-            encodedPath.append(s).append("/");
+            String s = segment.toString().replace(" ", "%20");
+            if (!encodedPath.isEmpty()) encodedPath.append("/");
+            encodedPath.append(s);
         }
-        // Remove trailing slash if not a directory
-        if (!encodedPath.isEmpty() && !relativePath.toString().endsWith("/")) {
-            encodedPath.setLength(encodedPath.length() - 1);
+        if (!isFile) {
+            encodedPath.append("/");
         }
-        try {
-            return prunedFolder.toURI().resolve(encodedPath.toString()).toURL();
-        } catch (Exception e) {
-            throw new MalformedURLException("Failed to resolve URL: " + e.getMessage());
-        }
+        return prunedFolder.toURI().resolve(encodedPath.toString()).toURL();
     }
 
     private void createParentRecursive(URL baseUrl, Path relativePath) {
         Path parent = relativePath.getParent();
         if (parent == null) return;
-
         try {
             createParentRecursive(baseUrl, parent);
-            URL folderUri = getFileUri(baseUrl, parent);
+            URL folderUri = getUrl(baseUrl, parent, false);
             getOrCreateFolder(folderUri);
-        } catch (MalformedURLException e) {
+        } catch (MalformedURLException | URISyntaxException e) {
             if (Config.debug) PrunedMod.LOGGER.info("Malformed URL: {} + {}; {}", baseUrl, relativePath, e.getMessage());
         }
     }
@@ -79,19 +78,20 @@ public class WebDAVStorage {
         return getOrCreateFolder(getPrunedUri());
     }
 
-    private URL getOrCreateFolder(URL uri) {
+    private URL getOrCreateFolder(URL url) {
         try {
-            sardine.createDirectory(uri.toString());
-            if (Config.debug) PrunedMod.LOGGER.info("Created pruned folder");
+            sardine.createDirectory(url.toString());
+            if (Config.debug) PrunedMod.LOGGER.info("Created folder {}", url);
         } catch (IOException e) {
+            //noinspection StatementWithEmptyBody
             if (e.getMessage() != null && e.getMessage().contains("405")) {
                 // 405 Method Not Allowed: treat as folder already exists
-                if (Config.debug) PrunedMod.LOGGER.info("Folder already exists (405) at: {}", uri);
+                //if (Config.debug) PrunedMod.LOGGER.info("Folder already exists (405) at: {}", url);
             } else {
-                if (Config.debug) PrunedMod.LOGGER.error("Failed to create pruned folder: {}", e.getMessage());
+                if (Config.debug) PrunedMod.LOGGER.error("Failed to create folder {}: {}", url, e.getMessage());
             }
         }
-        return uri;
+        return url;
     }
 
     private static URL getPrunedUri() throws MalformedURLException {
