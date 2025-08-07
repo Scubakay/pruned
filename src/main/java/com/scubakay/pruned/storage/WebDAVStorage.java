@@ -43,10 +43,13 @@ public class WebDAVStorage {
     }
 
     private URL getFileUri(URL prunedFolder, Path relativePath) throws MalformedURLException {
-        // Encode each segment of the relative path
+        // Encode each segment of the relative path for URL path (spaces as %20, not +)
         StringBuilder encodedPath = new StringBuilder();
         for (Path segment : relativePath) {
-            encodedPath.append(java.net.URLEncoder.encode(segment.toString(), java.nio.charset.StandardCharsets.UTF_8)).append("/");
+            String s = segment.toString();
+            // Replace spaces with %20 and leave other characters as-is
+            s = s.replace(" ", "%20");
+            encodedPath.append(s).append("/");
         }
         // Remove trailing slash if not a directory
         if (!encodedPath.isEmpty() && !relativePath.toString().endsWith("/")) {
