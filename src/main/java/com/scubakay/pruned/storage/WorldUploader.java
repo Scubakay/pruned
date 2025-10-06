@@ -36,17 +36,17 @@ public class WorldUploader {
     }
 
     public static void synchronizeWithIgnoreList(MinecraftServer server, Path path) {
-        synchronizeRecursive(server, path.getParent(), path);
+        synchronizeRecursive(server, path);
     }
 
-    private static void synchronizeRecursive(MinecraftServer server, Path basePath, Path currentPath) {
+    private static void synchronizeRecursive(MinecraftServer server, Path currentPath) {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(currentPath)) {
             for (Path entry : stream) {
                 if (!isIgnored(currentPath)) {
                     if (Files.isRegularFile(entry)) {
                         PrunedData.getServerState(server).updateFile(entry);
                     } else if (Files.isDirectory(entry)) {
-                        synchronizeRecursive(server, basePath, entry);
+                        synchronizeRecursive(server, entry);
                     }
                 }
             }
