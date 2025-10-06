@@ -42,12 +42,10 @@ public class WorldUploader {
     private static void synchronizeRecursive(MinecraftServer server, Path currentPath) {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(currentPath)) {
             for (Path entry : stream) {
-                if (!isIgnored(currentPath)) {
-                    if (Files.isRegularFile(entry)) {
-                        PrunedData.getServerState(server).updateFile(entry);
-                    } else if (Files.isDirectory(entry)) {
-                        synchronizeRecursive(server, entry);
-                    }
+                if (Files.isDirectory(entry)) {
+                    synchronizeRecursive(server, entry);
+                } else if (Files.isRegularFile(entry) && !isIgnored(currentPath)) {
+                    PrunedData.getServerState(server).updateFile(entry);
                 }
             }
         } catch (IOException e) {

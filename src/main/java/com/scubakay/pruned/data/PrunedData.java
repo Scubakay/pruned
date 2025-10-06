@@ -1,6 +1,7 @@
 package com.scubakay.pruned.data;
 
 import com.scubakay.pruned.PrunedMod;
+import com.scubakay.pruned.config.Config;
 import com.scubakay.pruned.storage.WorldUploader;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
@@ -68,12 +69,12 @@ public class PrunedData extends PersistentState {
             lastUpdateTimes.put(path, now);
 
             // The actual file upload
-            PrunedMod.LOGGER.info("Scheduling {} for upload", path);
+            if ( Config.debug) PrunedMod.LOGGER.info("Scheduling {} for upload", path);
             this.files.put(path, sha1);
             this.markDirty();
             WorldUploader.uploadFile(server, path);
         } else {
-            PrunedMod.LOGGER.info("File {} is already up to date", path);
+            if ( Config.debug) PrunedMod.LOGGER.info("File {} is already up to date", path);
         }
     }
 
