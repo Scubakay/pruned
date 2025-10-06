@@ -14,7 +14,7 @@
       "tooltip": "Adds the current region to the world download",
       "action": {
         "type": "minecraft:run_command",
-        "command": "inhabitor set ~ ~ ~ ~ 99999"
+        "command": "pruned save"
       }
     },
     {
@@ -22,7 +22,7 @@
       "tooltip": "Removes the current region from the world download",
       "action": {
         "type": "minecraft:run_command",
-        "command": "inhabitor set ~ ~ ~ ~ 1"
+        "command": "pruned remove"
       }
     }
   ]

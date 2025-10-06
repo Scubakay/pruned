@@ -21,9 +21,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class WorldUploader {
     // Single-threaded executor for uploads (can be changed to multithreaded if needed)
     private static final ExecutorService uploadExecutor = Executors.newSingleThreadExecutor();
+    private static final ExecutorService removeExecutor = Executors.newSingleThreadExecutor();
 
     // Track files currently queued or uploading
     private static final Set<String> uploadingFiles = ConcurrentHashMap.newKeySet();
+    private static final Set<String> removingFiles = ConcurrentHashMap.newKeySet();
 
     public static void afterSave(MinecraftServer server, boolean ignoredFlush, boolean ignoredForce) {
         final PrunedData serverState = PrunedData.getServerState(server);
@@ -63,6 +65,20 @@ public class WorldUploader {
                     WebDAVStorage.getInstance().uploadWorldFile(path, relativePath);
                 } finally {
                     uploadingFiles.remove(path.toString());
+                }
+            });
+        }
+    }
+
+    public static void removeFile(MinecraftServer server, Path path) {
+        Path savePath = server.getSavePath(WorldSavePath.ROOT);
+        Path relativePath = savePath.getParent().getParent().relativize(path);
+        if (removingFiles.add(path.toString())) {
+            removeExecutor.submit(() -> {
+                try {
+                    WebDAVStorage.getInstance().removeWorldFile(relativePath);
+                } finally {
+                    removingFiles.remove(path.toString());
                 }
             });
         }

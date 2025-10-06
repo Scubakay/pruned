@@ -49,6 +49,19 @@ public class WebDAVStorage {
         }
     }
 
+    public void removeWorldFile(Path relativePath) {
+        try {
+            URL prunedFolder = getOrCreatePrunedFolder();
+            URL fileUri = getUrl(prunedFolder, relativePath);
+            sardine.delete(fileUri.toString());
+            if (Config.debug) PrunedMod.LOGGER.info("Removed: {}", relativePath);
+        } catch (MalformedURLException | URISyntaxException e) {
+            if (Config.debug) PrunedMod.LOGGER.error("Could not form URL: {}", e.getMessage());
+        } catch (Exception e) {
+            if (Config.debug) PrunedMod.LOGGER.error("Failed to remove file {}", e.getMessage());
+        }
+    }
+
     private void createParentRecursive(URL baseUrl, Path relativePath) {
         Path parent = relativePath.getParent();
         if (parent == null) return;
