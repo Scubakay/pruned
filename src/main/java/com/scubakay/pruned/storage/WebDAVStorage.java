@@ -32,9 +32,10 @@ public class WebDAVStorage {
         URL fileUri = null;
         String mimeType = "";
         try {
-            URL prunedFolder = getOrCreateFolder(getPrunedUri());
+            URL prunedFolder = getOrCreatePrunedFolder();
+            createParentRecursive(prunedFolder, relativePath);
 
-            fileUri = getUrl(prunedFolder, relativePath, true);
+            fileUri = getUrl(prunedFolder, relativePath);
             mimeType = Files.probeContentType(filepath);
             if (mimeType == null) mimeType = "application/octet-stream";
             byte[] fileBytes = Files.readAllBytes(filepath.normalize());
@@ -48,15 +49,28 @@ public class WebDAVStorage {
         }
     }
 
-    private URL getUrl(URL prunedFolder, Path relativePath, boolean isFile) throws MalformedURLException, URISyntaxException {
+    private void createParentRecursive(URL baseUrl, Path relativePath) {
+        Path parent = relativePath.getParent();
+        if (parent == null) return;
+        try {
+            createParentRecursive(baseUrl, parent);
+            URL folderUri = getUrl(baseUrl, parent);
+            getOrCreateFolder(folderUri);
+        } catch (MalformedURLException | URISyntaxException e) {
+            if (Config.debug) PrunedMod.LOGGER.info("Malformed URL: {} + {}; {}", baseUrl, relativePath, e.getMessage());
+        }
+    }
+
+    private URL getOrCreatePrunedFolder() throws MalformedURLException {
+        return getOrCreateFolder(getPrunedUri());
+    }
+
+    private URL getUrl(URL prunedFolder, Path relativePath) throws MalformedURLException, URISyntaxException {
         StringBuilder encodedPath = new StringBuilder();
         for (Path segment : relativePath) {
             String s = segment.toString().replace(" ", "%20");
             if (!encodedPath.isEmpty()) encodedPath.append("/");
             encodedPath.append(s);
-        }
-        if (!isFile) {
-            encodedPath.append("/");
         }
         return prunedFolder.toURI().resolve(encodedPath.toString()).toURL();
     }

@@ -63,10 +63,6 @@ public class PrunedData extends PersistentState {
             if (Config.debug) PrunedMod.LOGGER.info("Could not get sha1 for {}", path);
             return;
         }
-        if (WorldUploader.isIgnored(path)) {
-            if (Config.debug) PrunedMod.LOGGER.info("File {} was ignored", path);
-            return;
-        }
         if (!this.files.containsKey(path) || !this.files.get(path).equals(sha1)) {
             // Debounce after the file has been uploaded. Don't upload for a minute or so
             long now = System.currentTimeMillis();
@@ -117,18 +113,7 @@ public class PrunedData extends PersistentState {
 
     public static final Codec<PrunedData> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.BOOL.fieldOf("active").forGetter(PrunedData::isActive),
-            // Filter out null keys/values before serializing
-            Codec.unboundedMap(PATH_CODEC, Codec.STRING)
-                .fieldOf("files")
-                .forGetter(data -> {
-                    Map<Path, String> filtered = new HashMap<>();
-                    for (Map.Entry<Path, String> entry : data.getFiles().entrySet()) {
-                        if (entry.getKey() != null && entry.getValue() != null) {
-                            filtered.put(entry.getKey(), entry.getValue());
-                        }
-                    }
-                    return filtered;
-                })
+            Codec.unboundedMap(PATH_CODEC, Codec.STRING).fieldOf("files").forGetter(PrunedData::getFiles)
     ).apply(instance, PrunedData::new));
 
     private static PrunedData getState(ServerWorld serverWorld) {

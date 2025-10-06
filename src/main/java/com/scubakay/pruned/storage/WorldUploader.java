@@ -44,7 +44,7 @@ public class WorldUploader {
             for (Path entry : stream) {
                 if (Files.isDirectory(entry)) {
                     synchronizeRecursive(server, entry);
-                } else if (Files.isRegularFile(entry) && !isIgnored(currentPath)) {
+                } else if (Files.isRegularFile(entry) && !isIgnored(entry)) {
                     PrunedData.getServerState(server).updateFile(entry);
                 }
             }
@@ -68,7 +68,7 @@ public class WorldUploader {
         }
     }
 
-    public static boolean isIgnored(Path relativePath) {
+    private static boolean isIgnored(Path relativePath) {
         List<Pattern> ignoredPatterns = Config.ignored.stream()
                 .map(WorldUploader::gitignorePatternToRegex)
                 .map(Pattern::compile)
