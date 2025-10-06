@@ -31,9 +31,6 @@ public class WorldUploader {
 
     public static void scheduleWorldSync(MinecraftServer server) {
         PrunedData.setServer(server);
-        if (!Config.autoSync || !PrunedData.getServerState().isActive()) {
-            return;
-        }
 
         Path path = server.getSavePath(WorldSavePath.ROOT);
         scheduler = Executors.newScheduledThreadPool(2);
@@ -73,13 +70,20 @@ public class WorldUploader {
     }
 
     public static void synchronizeDirty(Path path, Map<String, Path> regions) {
+        if (!Config.autoSync || !PrunedData.getServerState().isActive()) {
+            return;
+        }
         regions.forEach((regionName, regionPath) -> {
             Path relativePath = path.getParent().relativize(regionPath);
             uploadFile(regionPath, relativePath);
         });
+        regions.clear();
     }
 
     public static void synchronizeWithIgnoreList(Path path) {
+        if (!Config.autoSync || !PrunedData.getServerState().isActive()) {
+            return;
+        }
         synchronizeRecursive(path.getParent(), path);
     }
 
