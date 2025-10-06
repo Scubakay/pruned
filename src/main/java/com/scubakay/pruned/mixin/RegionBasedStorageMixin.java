@@ -31,7 +31,7 @@ public class RegionBasedStorageMixin {
 		if (pruned != null && pruned.isActive()) {
 			if (nbt.getLong("InhabitedTime").orElse(0L) >= Config.inhabitedTime) {
 				final Path path = regionFile.getPath();
-				PrunedData.getServerState().updateRegion(path);
+				PrunedData.getServerState().updateFile(path);
 			}
 		}
 	}

@@ -11,7 +11,6 @@ import java.nio.file.Files;
 import java.nio.file.DirectoryStream;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -33,32 +32,21 @@ public class WorldUploader {
         }
 
         Path path = server.getSavePath(WorldSavePath.ROOT);
-        synchronizeWithIgnoreList(path);
-        synchronizeDirty(path, serverState.getRegions());
+        synchronizeWithIgnoreList(server, path);
     }
 
-    public static void synchronizeDirty(Path path, Map<String, Path> regions) {
-        regions.forEach((regionName, regionPath) -> {
-            Path relativePath = path.getParent().relativize(regionPath);
-            uploadFile(regionPath, relativePath);
-        });
-        regions.clear();
+    public static void synchronizeWithIgnoreList(MinecraftServer server, Path path) {
+        synchronizeRecursive(server, path.getParent(), path);
     }
 
-    public static void synchronizeWithIgnoreList(Path path) {
-        synchronizeRecursive(path.getParent(), path);
-    }
-
-    private static void synchronizeRecursive(Path basePath, Path currentPath) {
+    private static void synchronizeRecursive(MinecraftServer server, Path basePath, Path currentPath) {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(currentPath)) {
             for (Path entry : stream) {
-                Path relativePath = basePath.relativize(entry);
-
-                if (!isIgnored(relativePath)) {
-                    if (Files.isDirectory(entry)) {
-                        synchronizeRecursive(basePath, entry);
-                    } else if (Files.isRegularFile(entry)) {
-                        uploadFile(entry, relativePath);
+                if (!isIgnored(currentPath)) {
+                    if (Files.isRegularFile(entry)) {
+                        PrunedData.getServerState(server).updateFile(entry);
+                    } else if (Files.isDirectory(entry)) {
+                        synchronizeRecursive(server, basePath, entry);
                     }
                 }
             }
@@ -68,13 +56,15 @@ public class WorldUploader {
         }
     }
 
-    public static void uploadFile(Path filePath, Path relativePath) {
-        if (uploadingFiles.add(filePath.toString())) {
+    public static void uploadFile(MinecraftServer server, Path path) {
+        Path savePath = server.getSavePath(WorldSavePath.ROOT);
+        Path relativePath = savePath.getParent().getParent().relativize(path);
+        if (uploadingFiles.add(path.toString())) {
             uploadExecutor.submit(() -> {
                 try {
-                    WebDAVStorage.getInstance().uploadWorldFile(filePath, relativePath);
+                    WebDAVStorage.getInstance().uploadWorldFile(path, relativePath);
                 } finally {
-                    uploadingFiles.remove(filePath.toString());
+                    uploadingFiles.remove(path.toString());
                 }
             });
         }
