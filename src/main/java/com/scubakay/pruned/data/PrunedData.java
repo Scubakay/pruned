@@ -59,7 +59,11 @@ public class PrunedData extends PersistentState {
 
     public void updateFile(Path path) {
         String sha1 = getSha1(path);
-        if (sha1 == null || !sha1.equals(this.files.get(path))) {
+        if (sha1 == null) {
+            PrunedMod.LOGGER.error("Could not get sha1 for {}", path);
+            return;
+        }
+        if (!this.files.containsKey(path) || !this.files.get(path).equals(sha1)) {
             // Debounce after the file has been uploaded. Don't upload for a minute or so
             long now = System.currentTimeMillis();
             Long lastUpdate = lastUpdateTimes.get(path);
@@ -68,13 +72,12 @@ public class PrunedData extends PersistentState {
             }
             lastUpdateTimes.put(path, now);
 
-            // The actual file upload
-            if ( Config.debug) PrunedMod.LOGGER.info("Scheduling {} for upload", path);
+            if (Config.debug) PrunedMod.LOGGER.info("Scheduling {} for upload", path);
             this.files.put(path, sha1);
             this.markDirty();
             WorldUploader.uploadFile(server, path);
         } else {
-            if ( Config.debug) PrunedMod.LOGGER.info("File {} is already up to date", path);
+            if (Config.debug) PrunedMod.LOGGER.info("File {} is already up to date", path);
         }
     }
 
@@ -110,7 +113,18 @@ public class PrunedData extends PersistentState {
 
     public static final Codec<PrunedData> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.BOOL.fieldOf("active").forGetter(PrunedData::isActive),
-            Codec.unboundedMap(PATH_CODEC, Codec.STRING).fieldOf("files").forGetter(PrunedData::getFiles)
+            // Filter out null keys/values before serializing
+            Codec.unboundedMap(PATH_CODEC, Codec.STRING)
+                .fieldOf("files")
+                .forGetter(data -> {
+                    Map<Path, String> filtered = new HashMap<>();
+                    for (Map.Entry<Path, String> entry : data.getFiles().entrySet()) {
+                        if (entry.getKey() != null && entry.getValue() != null) {
+                            filtered.put(entry.getKey(), entry.getValue());
+                        }
+                    }
+                    return filtered;
+                })
     ).apply(instance, PrunedData::new));
 
     private static PrunedData getState(ServerWorld serverWorld) {
