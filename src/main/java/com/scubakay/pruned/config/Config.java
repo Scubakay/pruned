@@ -22,9 +22,7 @@ public class Config extends MidnightConfig {
     @Entry()
     public static boolean autoSync = true;
     @Entry()
-    public static int regionSyncInterval = 60; // every minute
-    @Entry()
-    public static int worldSyncInterval = 900; // every 15 minutes
+    public static int regionDebounceTime = 5;
 
     // TODO: REMOVE THE WEBDAV AUTH STUFF
     @Entry()

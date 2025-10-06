@@ -55,7 +55,7 @@ public class PrunedData extends PersistentState {
 
     // Debounce map: file path -> last update timestamp (ms)
     private static final ConcurrentHashMap<Path, Long> lastUpdateTimes = new ConcurrentHashMap<>();
-    private static final long DEBOUNCE_INTERVAL_MS = 60_000; // 1 minute
+    private static final long DEBOUNCE_INTERVAL_MS = Config.regionDebounceTime * 60_000L; // Per minute
 
     public void updateFile(Path path) {
         String sha1 = getSha1(path);
