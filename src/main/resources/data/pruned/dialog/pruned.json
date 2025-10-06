@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:multi_action",
+  "title": "Pruned",
+  "body": {
+    "type": "minecraft:plain_message",
+    "contents": {
+      "text": "Manage if the current region is saved to the Pruned world download."
+    }
+  },
+  "columns": 1,
+  "actions": [
+    {
+      "label": "Save",
+      "tooltip": "Adds the current region to the world download",
+      "action": {
+        "type": "minecraft:run_command",
+        "command": "inhabitor set ~ ~ ~ ~ 99999"
+      }
+    },
+    {
+      "label": "Remove",
+      "tooltip": "Removes the current region from the world download",
+      "action": {
+        "type": "minecraft:run_command",
+        "command": "inhabitor set ~ ~ ~ ~ 1"
+      }
+    }
+  ]
+}

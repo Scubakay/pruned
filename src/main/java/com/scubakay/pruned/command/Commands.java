@@ -24,5 +24,6 @@ public class Commands {
         LoginCommand.register(dispatcher, registry, environment);
         ActivateCommand.register(dispatcher, registry, environment);
         UploadCommand.register(dispatcher, registry, environment);
+        SaveCommand.register(dispatcher, registry, environment);
     }
 }
