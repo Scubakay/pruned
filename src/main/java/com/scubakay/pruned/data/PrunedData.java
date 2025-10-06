@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class PrunedData extends PersistentState {
     private static MinecraftServer server;
@@ -51,13 +52,28 @@ public class PrunedData extends PersistentState {
         this.markDirty();
     }
 
+    // Debounce map: file path -> last update timestamp (ms)
+    private static final ConcurrentHashMap<Path, Long> lastUpdateTimes = new ConcurrentHashMap<>();
+    private static final long DEBOUNCE_INTERVAL_MS = 60_000; // 1 minute
+
     public void updateFile(Path path) {
         String sha1 = getSha1(path);
-        if (sha1 != null && !sha1.equals(this.files.get(path))) {
+        if (sha1 == null || !sha1.equals(this.files.get(path))) {
+            // Debounce after the file has been uploaded. Don't upload for a minute or so
+            long now = System.currentTimeMillis();
+            Long lastUpdate = lastUpdateTimes.get(path);
+            if (lastUpdate != null && (now - lastUpdate) < DEBOUNCE_INTERVAL_MS) {
+                return;
+            }
+            lastUpdateTimes.put(path, now);
+
+            // The actual file upload
             PrunedMod.LOGGER.info("Scheduling {} for upload", path);
             this.files.put(path, sha1);
             this.markDirty();
             WorldUploader.uploadFile(server, path);
+        } else {
+            PrunedMod.LOGGER.info("File {} is already up to date", path);
         }
     }
 

@@ -32,8 +32,7 @@ public class WebDAVStorage {
         URL fileUri = null;
         String mimeType = "";
         try {
-            URL prunedFolder = getOrCreatePrunedFolder();
-            createParentRecursive(prunedFolder, relativePath);
+            URL prunedFolder = getOrCreateFolder(getPrunedUri());
 
             fileUri = getUrl(prunedFolder, relativePath, true);
             mimeType = Files.probeContentType(filepath);
@@ -41,7 +40,7 @@ public class WebDAVStorage {
             byte[] fileBytes = Files.readAllBytes(filepath.normalize());
 
             sardine.put(fileUri.toString(), fileBytes, mimeType);
-            if (Config.debug) PrunedMod.LOGGER.info("Uploaded {} to {}", filepath.getFileName(), fileUri);
+            if (Config.debug) PrunedMod.LOGGER.info("Uploaded: {}", relativePath);
         } catch (MalformedURLException | URISyntaxException e) {
             if (Config.debug) PrunedMod.LOGGER.error("Could not form URL: {}", e.getMessage());
         } catch (Exception e) {
@@ -62,26 +61,12 @@ public class WebDAVStorage {
         return prunedFolder.toURI().resolve(encodedPath.toString()).toURL();
     }
 
-    private void createParentRecursive(URL baseUrl, Path relativePath) {
-        Path parent = relativePath.getParent();
-        if (parent == null) return;
-        try {
-            createParentRecursive(baseUrl, parent);
-            URL folderUri = getUrl(baseUrl, parent, false);
-            getOrCreateFolder(folderUri);
-        } catch (MalformedURLException | URISyntaxException e) {
-            if (Config.debug) PrunedMod.LOGGER.info("Malformed URL: {} + {}; {}", baseUrl, relativePath, e.getMessage());
-        }
-    }
-
-    private URL getOrCreatePrunedFolder() throws MalformedURLException {
-        return getOrCreateFolder(getPrunedUri());
-    }
-
     private URL getOrCreateFolder(URL url) {
         try {
-            sardine.createDirectory(url.toString());
-            if (Config.debug) PrunedMod.LOGGER.info("Created folder {}", url);
+            if (!sardine.exists(url.toString())) {
+                sardine.createDirectory(url.toString());
+                if (Config.debug) PrunedMod.LOGGER.info("Created folder {}", url);
+            }
         } catch (IOException e) {
             //noinspection StatementWithEmptyBody
             if (e.getMessage() != null && e.getMessage().contains("405")) {

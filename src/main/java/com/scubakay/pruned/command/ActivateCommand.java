@@ -4,6 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.scubakay.pruned.data.PrunedData;
+import com.scubakay.pruned.storage.WorldUploader;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -24,6 +25,7 @@ public class ActivateCommand {
 
     private static int activate(CommandContext<ServerCommandSource> source) {
         PrunedData.getServerState(source.getSource().getServer()).activate();
+        WorldUploader.afterSave(source.getSource().getServer(), false, false);
         source.getSource().sendFeedback(() -> Text.translatable("pruned.command.activate", source.getSource().getServer().getName()), false);
         return 1;
     }
