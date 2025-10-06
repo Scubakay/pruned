@@ -19,8 +19,7 @@ public class PrunedMod implements ModInitializer {
     @Override
     public void onInitialize() {
         MidnightConfig.init(MOD_ID, Config.class);
-        ServerLifecycleEvents.SERVER_STARTED.register(WorldUploader::scheduleWorldSync);
-        ServerLifecycleEvents.SERVER_STOPPING.register(WorldUploader::scheduleWorldSyncEnd);
+        ServerLifecycleEvents.AFTER_SAVE.register(WorldUploader::afterSave);
         CommandRegistrationCallback.EVENT.register(Commands::register);
     }
 }
