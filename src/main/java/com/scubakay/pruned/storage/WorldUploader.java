@@ -68,7 +68,7 @@ public class WorldUploader {
         }
     }
 
-    private static boolean isIgnored(Path relativePath) {
+    public static boolean isIgnored(Path relativePath) {
         List<Pattern> ignoredPatterns = Config.ignored.stream()
                 .map(WorldUploader::gitignorePatternToRegex)
                 .map(Pattern::compile)

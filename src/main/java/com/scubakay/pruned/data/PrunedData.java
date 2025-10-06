@@ -60,7 +60,11 @@ public class PrunedData extends PersistentState {
     public void updateFile(Path path) {
         String sha1 = getSha1(path);
         if (sha1 == null) {
-            PrunedMod.LOGGER.error("Could not get sha1 for {}", path);
+            if (Config.debug) PrunedMod.LOGGER.info("Could not get sha1 for {}", path);
+            return;
+        }
+        if (WorldUploader.isIgnored(path)) {
+            if (Config.debug) PrunedMod.LOGGER.info("File {} was ignored", path);
             return;
         }
         if (!this.files.containsKey(path) || !this.files.get(path).equals(sha1)) {
