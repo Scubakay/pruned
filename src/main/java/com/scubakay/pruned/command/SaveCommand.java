@@ -31,7 +31,7 @@ public class SaveCommand {
     private static int save(CommandContext<ServerCommandSource> source) {
         RegionPos pos = RegionPos.from(source.getSource().getPlayer().getChunkPos());
         setInhabitedTimeForRegion(source, PositionHelpers.getRegionChunkBounds(pos), Config.inhabitedTime * 20 * 60);
-
+        addRegionToPrunedData(source, pos);
         source.getSource().sendFeedback(() -> Text.literal(String.format("Added current region (%s) to Pruned world download", pos)), false);
         return 1;
     }
@@ -39,13 +39,17 @@ public class SaveCommand {
     private static int remove(CommandContext<ServerCommandSource> source) {
         RegionPos pos = RegionPos.from(source.getSource().getPlayer().getChunkPos());
         setInhabitedTimeForRegion(source, PositionHelpers.getRegionChunkBounds(pos), 1);
-        addRegionToPrunedData(source, pos);
-
+        removeRegionFromPrunedData(source, pos);
         source.getSource().sendFeedback(() -> Text.literal(String.format("Removed current region (%s) from Pruned world download", pos)), false);
         return 1;
     }
 
     private static void addRegionToPrunedData(CommandContext<ServerCommandSource> source, RegionPos pos) {
+        Path regionFile = PositionHelpers.regionPosToRegionFile(source.getSource().getServer(), source.getSource().getWorld().getRegistryKey(), pos);
+        PrunedData.getServerState(source.getSource().getServer()).updateFile(regionFile);
+    }
+
+    private static void removeRegionFromPrunedData(CommandContext<ServerCommandSource> source, RegionPos pos) {
         Path regionFile = PositionHelpers.regionPosToRegionFile(source.getSource().getServer(), source.getSource().getWorld().getRegistryKey(), pos);
         PrunedData.getServerState(source.getSource().getServer()).removeRegion(regionFile);
     }

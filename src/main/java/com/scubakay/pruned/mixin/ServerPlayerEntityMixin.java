@@ -6,7 +6,6 @@ import com.scubakay.pruned.data.RegionPos;
 import com.scubakay.pruned.data.ScoreboardManager;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
@@ -28,39 +27,35 @@ public class ServerPlayerEntityMixin {
     private void pruned$onTick(CallbackInfo ci) {
         ServerPlayerEntity player = (ServerPlayerEntity)(Object)this;
         RegionPos pos = RegionPos.from(player.getChunkPos());
-        if (previousChunk.x != pos.x || previousChunk.z != pos.z) {
+        if (!previousChunk.equals(pos)) {
             previousChunk = pos;
 
-            // Get dimension folder
-            ServerWorld world = player.getWorld();
             MinecraftServer server = player.getServer();
-            Path regionFile = PositionHelpers.regionPosToRegionFile(server, world.getRegistryKey(), pos);
+            Path regionFile = PositionHelpers.regionPosToRegionFile(server, player.getWorld().getRegistryKey(), pos);
             boolean inWorldDownload = PrunedData.getServerState(server).getFiles().containsKey(regionFile);
 
             ScoreboardManager.setBooleanScore(player, ScoreboardManager.PRUNED_CURRENT_REGION_IS_SAVED, inWorldDownload);
-            if (!ScoreboardManager.getBooleanScore(player, ScoreboardManager.PRUNED_CHECK_SCOREBOARD)) {
-                return;
+            if (ScoreboardManager.getBooleanScore(player, ScoreboardManager.PRUNED_CHECK_SCOREBOARD)) {
+                Text message;
+                if (inWorldDownload) {
+                    message = Text.literal(String.format("Current region (%s) is in the world download ", pos.toString()))
+                            .append(Text.literal("[Remove]")
+                                    .styled(style -> style
+                                            .withClickEvent(new ClickEvent.RunCommand("/pruned remove"))
+                                            .withColor(Colors.RED)
+                                    )
+                            );
+                } else {
+                    message = Text.literal(String.format("Current region (%s) is not in the world download ", pos.toString()))
+                            .append(Text.literal("[Add]")
+                                    .styled(style -> style
+                                            .withClickEvent(new ClickEvent.RunCommand("/pruned save"))
+                                            .withColor(Colors.GREEN)
+                                    )
+                            );
+                }
+                player.sendMessage(message, false);
             }
-
-            Text message;
-            if (inWorldDownload) {
-                message = Text.literal(String.format("Current region (%s) is in the world download ", pos.toString()))
-                    .append(Text.literal("[Remove]")
-                        .styled(style -> style
-                            .withClickEvent(new ClickEvent.RunCommand("/pruned remove"))
-                            .withColor(Colors.RED)
-                        )
-                    );
-            } else {
-                message = Text.literal(String.format("Current region (%s) is not in the world download ", pos.toString()))
-                    .append(Text.literal("[Add]")
-                        .styled(style -> style
-                            .withClickEvent(new ClickEvent.RunCommand("/pruned save"))
-                            .withColor(Colors.GREEN)
-                        )
-                    );
-            }
-            player.sendMessage(message, false);
         }
     }
 }
