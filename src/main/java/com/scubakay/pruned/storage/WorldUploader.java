@@ -47,7 +47,7 @@ public class WorldUploader {
                 if (Files.isDirectory(entry)) {
                     synchronizeRecursive(server, entry);
                 } else if (Files.isRegularFile(entry) && !isIgnored(entry)) {
-                    PrunedData.getServerState(server).updateFile(entry);
+                    PrunedData.getServerState(server).updateFile(entry.normalize());
                 }
             }
         } catch (IOException e) {

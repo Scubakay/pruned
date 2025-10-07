@@ -1,17 +1,23 @@
 {
   "type": "minecraft:multi_action",
   "title": "Pruned",
-  "body": {
-    "type": "minecraft:plain_message",
-    "contents": {
-      "text": "Manage if the current region is saved to the Pruned world download."
+  "body": [
+    {
+      "type": "minecraft:plain_message",
+      "contents": {
+        "text": "Manage if the current chunk is saved to the world download."
+      }
+    },
+    {
+      "type": "minecraft:plain_message",
+      "contents": "Saved in world download: "
     }
-  },
+  ],
   "columns": 1,
   "actions": [
     {
       "label": "Save",
-      "tooltip": "Adds the current region to the world download",
+      "tooltip": "Adds the current chunk to the world download",
       "action": {
         "type": "minecraft:run_command",
         "command": "pruned save"
@@ -19,10 +25,18 @@
     },
     {
       "label": "Remove",
-      "tooltip": "Removes the current region from the world download",
+      "tooltip": "Removes the current chunk from the world download",
       "action": {
         "type": "minecraft:run_command",
         "command": "pruned remove"
+      }
+    },
+    {
+      "label": "Toggle Region Check",
+      "tooltip": "Enables/disables chat messages allowing you to toggle if the current region is included in the world download",
+      "action": {
+        "type": "minecraft:run_command",
+        "command": "pruned check"
       }
     }
   ]
