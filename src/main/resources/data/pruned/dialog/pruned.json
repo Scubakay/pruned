@@ -10,7 +10,17 @@
     },
     {
       "type": "minecraft:plain_message",
-      "contents": "Saved in world download: "
+      "contents": [
+        "Saved in world download: ",
+        {
+          "score": {
+            "objective": "pruned_current_region_is_saved",
+            "name": "@s"
+          },
+          "type": "score",
+          "bold": true
+        }
+      ]
     }
   ],
   "columns": 1,
@@ -32,8 +42,8 @@
       }
     },
     {
-      "label": "Toggle Region Check",
-      "tooltip": "Enables/disables chat messages allowing you to toggle if the current region is included in the world download",
+      "label": "Toggle Region Manager",
+      "tooltip": "Enables/disables chat messages showing if the current region is saved to the world download.",
       "action": {
         "type": "minecraft:run_command",
         "command": "pruned check"

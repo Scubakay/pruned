@@ -3,17 +3,14 @@ package com.scubakay.pruned.data;
 import com.scubakay.pruned.PrunedMod;
 import com.scubakay.pruned.config.Config;
 import com.scubakay.pruned.storage.WorldUploader;
-import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.WorldSavePath;
 import net.minecraft.world.PersistentState;
 import net.minecraft.world.World;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.world.PersistentStateType;
-import net.minecraft.world.dimension.DimensionType;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -80,26 +77,13 @@ public class PrunedData extends PersistentState {
             this.markDirty();
             WorldUploader.uploadFile(server, path);
         } else {
-            if (Config.debug) PrunedMod.LOGGER.info("File {} is already up to date", path);
+            //if (Config.debug) PrunedMod.LOGGER.info("File {} is already up to date", path);
         }
     }
 
-    public void removeRegion(RegistryEntry<DimensionType> dimension, String filename) {
-        Path savePath = server.getSavePath(WorldSavePath.ROOT);
-        String dimFolder = "";
-        if (dimension == World.OVERWORLD) {
-            dimFolder = "";
-        } else if (dimension == World.NETHER) {
-            dimFolder = "DIM-1";
-        } else if (dimension == World.END) {
-            dimFolder = "DIM1";
-        }
-        Path regionFilePath = dimFolder.isEmpty()
-            ? savePath.resolve("region").resolve(filename)
-            : savePath.resolve(dimFolder).resolve("region").resolve(filename);
-        // Remove from files map and call WorldUploader.removeFile
-        this.files.remove(regionFilePath);
-        WorldUploader.removeFile(server, regionFilePath);
+    public void removeRegion(Path region) {
+        this.files.remove(region);
+        WorldUploader.removeFile(server, region);
         this.markDirty();
     }
 

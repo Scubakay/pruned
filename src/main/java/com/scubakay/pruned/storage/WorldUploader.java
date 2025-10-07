@@ -71,6 +71,7 @@ public class WorldUploader {
     }
 
     public static void removeFile(MinecraftServer server, Path path) {
+        uploadingFiles.remove(path.toString());
         Path savePath = server.getSavePath(WorldSavePath.ROOT);
         Path relativePath = savePath.getParent().getParent().relativize(path);
         if (removingFiles.add(path.toString())) {

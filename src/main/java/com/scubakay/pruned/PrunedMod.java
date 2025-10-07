@@ -28,5 +28,6 @@ public class PrunedMod implements ModInitializer {
 
     private void onServerStarted(MinecraftServer server) {
         ScoreboardManager.createScoreboard(server, ScoreboardManager.PRUNED_CHECK_SCOREBOARD, "Pruned Check Enabled/Disabled");
+        ScoreboardManager.createScoreboard(server, ScoreboardManager.PRUNED_CURRENT_REGION_IS_SAVED, "Pruned Current Region Is Saved (1: yes, 0: no)");
     }
 }

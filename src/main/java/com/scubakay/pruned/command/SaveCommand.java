@@ -3,14 +3,17 @@ package com.scubakay.pruned.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
+import com.scubakay.pruned.config.Config;
+import com.scubakay.pruned.data.PositionHelpers;
 import com.scubakay.pruned.data.PrunedData;
+import com.scubakay.pruned.data.RegionChunkBounds;
+import com.scubakay.pruned.data.RegionPos;
 import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.dimension.DimensionType;
+
+import java.nio.file.Path;
 
 public class SaveCommand {
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess ignoredRegistry, CommandManager.RegistrationEnvironment ignoredEnvironment) {
@@ -26,37 +29,30 @@ public class SaveCommand {
     }
 
     private static int save(CommandContext<ServerCommandSource> source) {
-        ChunkPos pos = source.getSource().getPlayer().getChunkPos();
-        int regionX = pos.x / 32;
-        int regionZ = pos.z / 32;
-        int x1 = regionX * 32;
-        int z1 = regionZ * 32;
-        int x2 = x1 + 31;
-        int z2 = z1 + 31;
-        int time = 99999;
-        String command = String.format("/inhabitor set %d %d %d %d %d", x1, z1, x2, z2, time);
-        ServerCommandSource src = source.getSource().withLevel(4); // Ensure sufficient permission
-        src.getServer().getCommandManager().executeWithPrefix(src, command);
-        source.getSource().sendFeedback(() -> Text.literal(String.format("Added current region (chunk %d, %d to chunk %d, %d) to Pruned world download", x1, z1, x2, z2)), false);
+        RegionPos pos = RegionPos.from(source.getSource().getPlayer().getChunkPos());
+        setInhabitedTimeForRegion(source, PositionHelpers.getRegionChunkBounds(pos), Config.inhabitedTime * 20 * 60);
+
+        source.getSource().sendFeedback(() -> Text.literal(String.format("Added current region (%s) to Pruned world download", pos)), false);
         return 1;
     }
 
     private static int remove(CommandContext<ServerCommandSource> source) {
-        ChunkPos pos = source.getSource().getPlayer().getChunkPos();
-        int regionX = pos.x / 32;
-        int regionZ = pos.z / 32;
-        int x1 = regionX * 32;
-        int z1 = regionZ * 32;
-        int x2 = x1 + 31;
-        int z2 = z1 + 31;
-        int time = 1;
-        String command = String.format("/inhabitor set %d %d %d %d %d", x1, z1, x2, z2, time);
+        RegionPos pos = RegionPos.from(source.getSource().getPlayer().getChunkPos());
+        setInhabitedTimeForRegion(source, PositionHelpers.getRegionChunkBounds(pos), 1);
+        addRegionToPrunedData(source, pos);
+
+        source.getSource().sendFeedback(() -> Text.literal(String.format("Removed current region (%s) from Pruned world download", pos)), false);
+        return 1;
+    }
+
+    private static void addRegionToPrunedData(CommandContext<ServerCommandSource> source, RegionPos pos) {
+        Path regionFile = PositionHelpers.regionPosToRegionFile(source.getSource().getServer(), source.getSource().getWorld().getRegistryKey(), pos);
+        PrunedData.getServerState(source.getSource().getServer()).removeRegion(regionFile);
+    }
+
+    private static void setInhabitedTimeForRegion(CommandContext<ServerCommandSource> source, RegionChunkBounds bounds, int time) {
+        String command = String.format("/inhabitor set %d %d %d %d %d", bounds.start().x, bounds.start().z, bounds.end().x, bounds.end().z, time);
         ServerCommandSource src = source.getSource().withLevel(4); // Ensure sufficient permission
         src.getServer().getCommandManager().executeWithPrefix(src, command);
-        String regionFileName = String.format("r.%d.%d.mca", regionX, regionZ);
-        RegistryEntry<DimensionType> dimension = source.getSource().getWorld().getDimensionEntry();
-        PrunedData.getServerState(source.getSource().getServer()).removeRegion(dimension, regionFileName);
-        source.getSource().sendFeedback(() -> Text.literal(String.format("Removed current region (chunk %d, %d to chunk %d, %d) from Pruned world download", x1, z1, x2, z2)), false);
-        return 1;
     }
 }
