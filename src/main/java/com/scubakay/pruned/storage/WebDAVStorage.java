@@ -19,6 +19,7 @@ public class WebDAVStorage {
 
     private WebDAVStorage() {
         sardine = SardineFactory.begin(Config.webDavUsername, Config.webDavPassword);
+        sardine.enablePreemptiveAuthentication(getHostFromEndpoint(Config.webDavEndpoint));
     }
 
     public static WebDAVStorage getInstance() {
@@ -40,7 +41,7 @@ public class WebDAVStorage {
             if (mimeType == null) mimeType = "application/octet-stream";
             byte[] fileBytes = Files.readAllBytes(filepath.normalize());
 
-            sardine.put(fileUri.toString(), fileBytes, mimeType);
+            sardine.put(fileUri.toString(), fileBytes);
             if (Config.debug) PrunedMod.LOGGER.info("Uploaded: {}", relativePath);
         } catch (MalformedURLException | URISyntaxException e) {
             if (Config.debug) PrunedMod.LOGGER.error("Could not form URL: {}", e.getMessage());
@@ -111,5 +112,15 @@ public class WebDAVStorage {
         if (!endpoint.endsWith("/")) endpoint += "/";
         endpoint += "Pruned/";
         return URI.create(endpoint).toURL();
+    }
+
+    private static String getHostFromEndpoint(String endpoint) {
+        try {
+            URI uri = URI.create(endpoint);
+            return uri.getHost();
+        } catch (Exception e) {
+            if (Config.debug) PrunedMod.LOGGER.error("Failed to parse WebDAV endpoint host: {}", e.getMessage());
+            return endpoint; // fallback
+        }
     }
 }
