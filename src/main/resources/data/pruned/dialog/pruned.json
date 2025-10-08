@@ -51,10 +51,10 @@
     },
     {
       "label": "WebDav Configuration",
-      "tooltip": "Login to WebDav server",
+      "tooltip": "Requires permission on servers",
       "action": {
-        "type": "minecraft:show_dialog",
-        "dialog": "pruned:webdav_config"
+        "type": "minecraft:run_command",
+        "command": "pruned login webdav"
       }
     }
   ]

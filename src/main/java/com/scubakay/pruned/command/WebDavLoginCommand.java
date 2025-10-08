@@ -3,6 +3,7 @@ package com.scubakay.pruned.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.scubakay.pruned.PrunedMod;
 import com.scubakay.pruned.config.Config;
@@ -17,18 +18,24 @@ import net.minecraft.text.Text;
 
 public class WebDavLoginCommand {
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess ignoredRegistry, CommandManager.RegistrationEnvironment ignoredEnvironment) {
-        LiteralCommandNode<ServerCommandSource> loginNode = CommandManager.literal("login")
-            .then(CommandManager.literal("webdav")
-                .then(CommandManager.argument("endpoint", StringArgumentType.string())
-                    .then(CommandManager.argument("username", StringArgumentType.string())
-                        .then(CommandManager.argument("password", StringArgumentType.string())
-                            .executes(WebDavLoginCommand::login)
-                        )
-                    )
+        // Subcommand to open the dialog
+        ArgumentCommandNode<ServerCommandSource, String> loginNode = CommandManager.argument("endpoint", StringArgumentType.string())
+            .then(CommandManager.argument("username", StringArgumentType.string())
+                .then(CommandManager.argument("password", StringArgumentType.string())
+                    .executes(WebDavLoginCommand::login)
                 )
-            )
-            .build();
-        Commands.getRoot(dispatcher).addChild(loginNode);
+            ).build();
+
+        LiteralCommandNode<ServerCommandSource> openDialogNode = CommandManager.literal("login")
+            .then(CommandManager.literal("webdav")
+                .executes(ctx -> {
+                    String command = "dialog show @s pruned:webdav_config";
+                    ctx.getSource().getDispatcher().execute(command, ctx.getSource());
+                    return 1;
+                })
+                .then(loginNode)
+            ).build();
+        Commands.getRoot(dispatcher).addChild(openDialogNode);
     }
 
     private static int login(CommandContext<ServerCommandSource> context) {
