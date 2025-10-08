@@ -15,14 +15,18 @@ import net.minecraft.text.Text;
 
 import java.nio.file.Path;
 
+import static com.scubakay.pruned.command.PermissionManager.*;
+
 public class SaveCommand {
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess ignoredRegistry, CommandManager.RegistrationEnvironment ignoredEnvironment) {
         LiteralCommandNode<ServerCommandSource> activateNode = CommandManager.literal("save")
+                .requires(ctx -> hasPermission(ctx, SAVE_REGION_PERMISSION))
                 .executes(SaveCommand::save)
                 .build();
         Commands.getRoot(dispatcher).addChild(activateNode);
 
         LiteralCommandNode<ServerCommandSource> deactivateNode = CommandManager.literal("remove")
+                .requires(ctx -> hasPermission(ctx, REMOVE_REGION_PERMISSION))
                 .executes(SaveCommand::remove)
                 .build();
         Commands.getRoot(dispatcher).addChild(deactivateNode);

@@ -21,7 +21,6 @@ public class Commands {
     }
 
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registry, CommandManager.RegistrationEnvironment environment) {
-        LoginCommand.register(dispatcher, registry, environment);
         ActivateCommand.register(dispatcher, registry, environment);
         UploadCommand.register(dispatcher, registry, environment);
         SaveCommand.register(dispatcher, registry, environment);

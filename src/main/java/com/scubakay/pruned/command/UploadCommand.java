@@ -8,9 +8,13 @@ import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 
+import static com.scubakay.pruned.command.PermissionManager.CONFIGURE_PERMISSION;
+import static com.scubakay.pruned.command.PermissionManager.hasPermission;
+
 public class UploadCommand {
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess ignoredRegistry, CommandManager.RegistrationEnvironment ignoredEnvironment) {
         LiteralCommandNode<ServerCommandSource> uploadNode = CommandManager.literal("upload")
+                .requires(ctx -> hasPermission(ctx, CONFIGURE_PERMISSION))
                 .executes(UploadCommand::upload)
                 .build();
         Commands.getRoot(dispatcher).addChild(uploadNode);

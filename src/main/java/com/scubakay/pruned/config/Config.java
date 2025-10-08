@@ -26,11 +26,17 @@ public class Config extends MidnightConfig {
     @Entry()
     public static int regionDebounceTime = 5;
 
-    // TODO: REMOVE THE WEBDAV AUTH STUFF
+    @Hidden
     @Entry()
     public static String webDavEndpoint;
+    @Hidden
     @Entry()
     public static String webDavUsername;
+    @Hidden
     @Entry()
     public static String webDavPassword;
+
+    @Hidden
+    @Entry()
+    public static int permissionLevel = 4;
 }

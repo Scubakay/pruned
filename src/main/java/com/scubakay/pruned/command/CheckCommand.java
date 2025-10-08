@@ -9,9 +9,12 @@ import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 
+import static com.scubakay.pruned.command.PermissionManager.*;
+
 public class CheckCommand {
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess ignoredRegistry, CommandManager.RegistrationEnvironment ignoredEnvironment) {
         LiteralCommandNode<ServerCommandSource> checkNode = CommandManager.literal("check")
+                .requires(ctx -> hasPermission(ctx, REGION_PERMISSION))
                 .executes(CheckCommand::toggleCheck)
                 .build();
         Commands.getRoot(dispatcher).addChild(checkNode);

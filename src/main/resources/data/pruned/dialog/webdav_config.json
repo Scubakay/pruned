@@ -21,12 +21,13 @@
       "type": "minecraft:text",
       "key": "endpoint",
       "label": "Endpoint",
-      "initial": "https://app.koofr.net/dav/Koofr/"
+      "initial": "%ENDPOINT%"
     },
     {
       "type": "minecraft:text",
       "key": "username",
-      "label": "Username"
+      "label": "Username",
+      "initial": "%USERNAME%"
     },
     {
       "type": "minecraft:text",
