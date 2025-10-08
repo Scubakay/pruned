@@ -48,8 +48,13 @@ public class WebDavLoginCommand {
         Config.webDavUsername = username;
         Config.webDavPassword = encryptedPassword;
         MidnightConfig.write(PrunedMod.MOD_ID);
-        WebDAVStorage.reload();
-        context.getSource().sendFeedback(() -> Text.literal("WebDAV credentials updated securely."), false);
-        return 1;
+        WebDAVStorage.connect(context.getSource().getServer());
+        if (WebDAVStorage.isConnected()) {
+            context.getSource().sendFeedback(() -> Text.literal("WebDAV credentials updated"), false);
+            return 1;
+        } else {
+            context.getSource().sendFeedback(() -> Text.literal("Could not connect to WebDAV server"), false);
+            return 0;
+        }
     }
 }

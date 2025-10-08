@@ -3,6 +3,7 @@ package com.scubakay.pruned;
 import com.scubakay.pruned.command.Commands;
 import com.scubakay.pruned.config.Config;
 import com.scubakay.pruned.data.ScoreboardManager;
+import com.scubakay.pruned.storage.WebDAVStorage;
 import com.scubakay.pruned.storage.WorldUploader;
 import dev.kikugie.fletching_table.annotation.fabric.Entrypoint;
 import eu.midnightdust.lib.config.MidnightConfig;
@@ -17,6 +18,7 @@ import org.slf4j.LoggerFactory;
 public class PrunedMod implements ModInitializer {
     public static final String MOD_ID = "pruned";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+    public static WebDAVStorage webDAVStorage;
 
     @Override
     public void onInitialize() {
@@ -24,6 +26,8 @@ public class PrunedMod implements ModInitializer {
         ServerLifecycleEvents.AFTER_SAVE.register(WorldUploader::afterSave);
         CommandRegistrationCallback.EVENT.register(Commands::register);
         ServerLifecycleEvents.SERVER_STARTED.register(this::onServerStarted);
+        ServerLifecycleEvents.SERVER_STARTED.register(WebDAVStorage::connect);
+        ServerLifecycleEvents.SERVER_STOPPING.register(WebDAVStorage::disconnect);
     }
 
     private void onServerStarted(MinecraftServer server) {

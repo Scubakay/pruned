@@ -57,6 +57,8 @@ public class WorldUploader {
     }
 
     public static void uploadFile(MinecraftServer server, Path path) {
+        if (!WebDAVStorage.isConnected()) return;
+
         Path savePath = server.getSavePath(WorldSavePath.ROOT);
         Path relativePath = savePath.getParent().getParent().relativize(path);
         if (uploadingFiles.add(path.toString())) {
@@ -71,6 +73,8 @@ public class WorldUploader {
     }
 
     public static void removeFile(MinecraftServer server, Path path) {
+        if (!WebDAVStorage.isConnected()) return;
+
         uploadingFiles.remove(path.toString());
         Path savePath = server.getSavePath(WorldSavePath.ROOT);
         Path relativePath = savePath.getParent().getParent().relativize(path);
