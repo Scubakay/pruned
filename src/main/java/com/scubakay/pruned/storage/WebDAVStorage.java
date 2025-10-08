@@ -4,6 +4,8 @@ import com.github.sardine.Sardine;
 import com.github.sardine.SardineFactory;
 import com.scubakay.pruned.PrunedMod;
 import com.scubakay.pruned.config.Config;
+import com.scubakay.pruned.util.MachineIdentifier;
+import com.scubakay.pruned.util.PasswordEncryptor;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -18,15 +20,26 @@ public class WebDAVStorage {
     private final Sardine sardine;
 
     private WebDAVStorage() {
-        sardine = SardineFactory.begin(Config.webDavUsername, Config.webDavPassword);
+        PrunedMod.LOGGER.info("Connecting to WebDAV server...");
+        String machineId = MachineIdentifier.getMachineId();
+        String decryptedPassword = PasswordEncryptor.decrypt(Config.webDavPassword, machineId);
+        sardine = SardineFactory.begin(Config.webDavUsername, decryptedPassword);
         sardine.enablePreemptiveAuthentication(getHostFromEndpoint(Config.webDavEndpoint));
+        PrunedMod.LOGGER.info("Connected!");
     }
 
     public static WebDAVStorage getInstance() {
         if (instance == null) {
+            if (Config.debug) PrunedMod.LOGGER.info("Creating new WebDAVStorage singleton instance");
             instance = new WebDAVStorage();
         }
         return instance;
+    }
+
+    public static void reload() {
+        if (Config.debug) PrunedMod.LOGGER.info("Reloading WebDAVStorage singleton instance");
+        // If Sardine supported closing, we would close here
+        instance = new WebDAVStorage();
     }
 
     public void uploadWorldFile(Path filepath, Path relativePath) {

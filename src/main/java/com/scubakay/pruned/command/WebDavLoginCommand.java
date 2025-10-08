@@ -6,8 +6,9 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.scubakay.pruned.PrunedMod;
 import com.scubakay.pruned.config.Config;
+import com.scubakay.pruned.storage.WebDAVStorage;
 import com.scubakay.pruned.util.MachineIdentifier;
-import com.scubakay.pruned.util.PasswordHasher;
+import com.scubakay.pruned.util.PasswordEncryptor;
 import eu.midnightdust.lib.config.MidnightConfig;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
@@ -34,13 +35,13 @@ public class WebDavLoginCommand {
         String endpoint = StringArgumentType.getString(context, "endpoint");
         String username = StringArgumentType.getString(context, "username");
         String password = StringArgumentType.getString(context, "password");
-
         String machineId = MachineIdentifier.getMachineId();
-        String passwordHash = PasswordHasher.hashPassword(password, machineId);
+        String encryptedPassword = PasswordEncryptor.encrypt(password, machineId);
         Config.webDavEndpoint = endpoint;
         Config.webDavUsername = username;
-        Config.webDavPassword = passwordHash;
+        Config.webDavPassword = encryptedPassword;
         MidnightConfig.write(PrunedMod.MOD_ID);
+        WebDAVStorage.reload();
         context.getSource().sendFeedback(() -> Text.literal("WebDAV credentials updated securely."), false);
         return 1;
     }
