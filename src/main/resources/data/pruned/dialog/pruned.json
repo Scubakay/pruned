@@ -48,6 +48,14 @@
         "type": "minecraft:run_command",
         "command": "pruned check"
       }
+    },
+    {
+      "label": "WebDav Configuration",
+      "tooltip": "Login to WebDav server",
+      "action": {
+        "type": "minecraft:show_dialog",
+        "dialog": "pruned:webdav_config"
+      }
     }
   ]
 }

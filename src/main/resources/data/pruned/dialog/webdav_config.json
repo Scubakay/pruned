@@ -1,0 +1,48 @@
+{
+  "type": "minecraft:confirmation",
+  "title": "Pruned: WebDav Configuration",
+  "body": [
+    {
+      "type": "minecraft:plain_message",
+      "contents": {
+        "text": "Use this to configure the webdav endpoint."
+      }
+    },
+    {
+      "type": "minecraft:plain_message",
+      "contents": {
+        "text": "The password will be SHOWN ON SCREEN in this dialog. Do not share your screen while entering your information!",
+        "color": "red"
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "type": "minecraft:text",
+      "key": "endpoint",
+      "label": "Endpoint",
+      "initial": "https://app.koofr.net/dav/Koofr/"
+    },
+    {
+      "type": "minecraft:text",
+      "key": "username",
+      "label": "Username"
+    },
+    {
+      "type": "minecraft:text",
+      "key": "password",
+      "label": "Password",
+      "initial": "DO NOT SCREENSHARE"
+    }
+  ],
+  "yes": {
+    "label": "Save",
+    "action": {
+      "type": "dynamic/run_command",
+      "template": "pruned login webdav \"$(endpoint)\" \"$(username)\" \"$(password)\""
+    }
+  },
+  "no": {
+    "label": "Cancel"
+  }
+}

@@ -26,5 +26,6 @@ public class Commands {
         UploadCommand.register(dispatcher, registry, environment);
         SaveCommand.register(dispatcher, registry, environment);
         CheckCommand.register(dispatcher, registry, environment);
+        WebDavLoginCommand.register(dispatcher, registry, environment);
     }
 }
