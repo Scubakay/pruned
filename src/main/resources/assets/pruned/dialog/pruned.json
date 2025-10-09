@@ -22,7 +22,10 @@
   "columns": 1,
   "actions": [
     {
-      "label": "%ADD_OR_REMOVE%",
+      "label": {
+        "text": "%ADD_OR_REMOVE%",
+        "color": "%ADD_OR_REMOVE_COLOR%"
+      },
       "tooltip": "%ADD_OR_REMOVE_TOOLTIP%",
       "action": {
         "type": "minecraft:run_command",
@@ -30,7 +33,10 @@
       }
     },
     {
-      "label": "%ENABLE_DISABLE_HELPER%",
+      "label": {
+        "text": "%ENABLE_DISABLE_HELPER%",
+        "color": "%ENABLE_DISABLE_HELPER_COLOR%"
+      },
       "tooltip": "Helps you save or remove regions by moving between them",
       "action": {
         "type": "minecraft:run_command",
