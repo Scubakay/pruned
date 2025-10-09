@@ -1,5 +1,7 @@
-package com.scubakay.pruned.data;
+package com.scubakay.pruned.util;
 
+import com.scubakay.pruned.domain.RegionChunkBounds;
+import com.scubakay.pruned.domain.RegionPos;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.WorldSavePath;

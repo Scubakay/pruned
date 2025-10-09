@@ -1,9 +1,9 @@
 package com.scubakay.pruned.mixin;
 
 import com.scubakay.pruned.config.Config;
-import com.scubakay.pruned.data.PositionHelpers;
+import com.scubakay.pruned.util.PositionHelpers;
 import com.scubakay.pruned.data.PrunedData;
-import com.scubakay.pruned.data.RegionPos;
+import com.scubakay.pruned.domain.RegionPos;
 import net.minecraft.server.world.ServerWorld;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;

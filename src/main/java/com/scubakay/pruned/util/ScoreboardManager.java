@@ -1,4 +1,4 @@
-package com.scubakay.pruned.data;
+package com.scubakay.pruned.util;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.scoreboard.ScoreAccess;

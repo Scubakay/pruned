@@ -52,7 +52,7 @@ public class WebDAVStorage {
         // Should probably cancel all running uploads or something.
     }
 
-    public void uploadWorldFile(Path filepath, Path relativePath) {
+    public void uploadFile(Path filepath, Path relativePath) {
         URL fileUri = null;
         String mimeType = "";
         try {

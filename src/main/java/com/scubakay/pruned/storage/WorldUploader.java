@@ -10,7 +10,9 @@ import java.nio.file.Path;
 import java.nio.file.Files;
 import java.nio.file.DirectoryStream;
 import java.io.IOException;
+import java.security.MessageDigest;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -27,7 +29,7 @@ public class WorldUploader {
     private static final Set<String> uploadingFiles = ConcurrentHashMap.newKeySet();
     private static final Set<String> removingFiles = ConcurrentHashMap.newKeySet();
 
-    public static void afterSave(MinecraftServer server, boolean ignoredFlush, boolean ignoredForce) {
+    public static void upload(MinecraftServer server, boolean ignoredFlush, boolean ignoredForce) {
         final PrunedData serverState = PrunedData.getServerState(server);
         if (!Config.autoSync || !serverState.isActive()) {
             return;
@@ -35,6 +37,21 @@ public class WorldUploader {
 
         Path path = server.getSavePath(WorldSavePath.ROOT);
         synchronizeWithIgnoreList(server, path);
+        uploadWorldFiles(server);
+    }
+
+    public static void uploadWorldFiles(MinecraftServer server) {
+        Map<Path, String> files = PrunedData.getServerState(server).getFiles();
+        files.forEach((path, sha1) -> {
+            String newSha1 = getSha1(path);
+            if (newSha1 == null) {
+                if (Config.debug) PrunedMod.LOGGER.info("Could not get sha1 for {}", path);
+                return;
+            }
+            if (!newSha1.equals(sha1)) {
+                uploadWorldFile(server, path, newSha1);
+            }
+        });
     }
 
     public static void synchronizeWithIgnoreList(MinecraftServer server, Path path) {
@@ -51,12 +68,12 @@ public class WorldUploader {
                 }
             }
         } catch (IOException e) {
-            PrunedMod.LOGGER.info("Something went wrong trying to upload {} recursively", currentPath.toAbsolutePath());
+            PrunedMod.LOGGER.info("Something went wrong trying to add file {} to the world download", currentPath.toAbsolutePath());
             e.printStackTrace();
         }
     }
 
-    public static void uploadFile(MinecraftServer server, Path path) {
+    public static void uploadWorldFile(MinecraftServer server, Path path, String newSha1) {
         if (!WebDAVStorage.isConnected()) return;
 
         Path savePath = server.getSavePath(WorldSavePath.ROOT);
@@ -64,9 +81,10 @@ public class WorldUploader {
         if (uploadingFiles.add(path.toString())) {
             uploadExecutor.submit(() -> {
                 try {
-                    WebDAVStorage.getInstance().uploadWorldFile(path, relativePath);
+                    WebDAVStorage.getInstance().uploadFile(path, relativePath);
                 } finally {
                     uploadingFiles.remove(path.toString());
+                    PrunedData.getServerState(server).updateSha1(path, newSha1);
                 }
             });
         }
@@ -127,5 +145,15 @@ public class WorldUploader {
 
         sb.append("$");
         return sb.toString();
+    }
+
+    private static String getSha1(Path path) {
+        try {
+            byte[] fileBytes = Files.readAllBytes(path);
+            byte[] hashBytes = MessageDigest.getInstance("SHA-1").digest(fileBytes);
+            return java.util.HexFormat.of().formatHex(hashBytes);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

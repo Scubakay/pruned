@@ -1,8 +1,8 @@
 package com.scubakay.pruned.mixin;
 
-import com.scubakay.pruned.data.PositionHelpers;
+import com.scubakay.pruned.util.PositionHelpers;
 import com.scubakay.pruned.data.PrunedData;
-import com.scubakay.pruned.data.RegionPos;
+import com.scubakay.pruned.domain.RegionPos;
 import com.scubakay.pruned.domain.PrunedServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -57,23 +57,23 @@ public class ServerPlayerEntityMixin implements PrunedServerPlayerEntity {
     public void pruned$loadPrunedStatus() {
         ServerPlayerEntity player = (ServerPlayerEntity)(Object)this;
         RegionPos pos = RegionPos.from(player.getChunkPos());
+
         if (!previousChunk.equals(pos)) {
             previousChunk = pos;
-
-            MinecraftServer server = player.getServer();
-            Path regionFile = PositionHelpers.regionPosToRegionFile(server, player.getWorld().getRegistryKey(), pos);
-            regionInWorldDownload = PrunedData.getServerState(server).getFiles().containsKey(regionFile);
-
             if (regionHelperEnabled) {
                 Text message = getHelperMessage(
-                            String.format("Current region (%s) is %sin the world download ", pos.toString(), regionInWorldDownload ? "" : "not"),
-                            regionInWorldDownload ? "Remove" : "[Add]",
-                            regionInWorldDownload ? "/pruned remove" : "/pruned save",
-                            regionInWorldDownload ? Colors.RED : Colors.GREEN
-                    );
+                        String.format("Current region (%s) is %sin the world download ", pos.toString(), regionInWorldDownload ? "" : "not"),
+                        regionInWorldDownload ? "Remove" : "[Add]",
+                        regionInWorldDownload ? "/pruned remove" : "/pruned save",
+                        regionInWorldDownload ? Colors.RED : Colors.GREEN
+                );
                 player.sendMessage(message, false);
             }
         }
+
+        MinecraftServer server = player.getServer();
+        Path regionFile = PositionHelpers.regionPosToRegionFile(server, player.getWorld().getRegistryKey(), pos);
+        regionInWorldDownload = PrunedData.getServerState(server).getFiles().containsKey(regionFile);
     }
 
     @Unique

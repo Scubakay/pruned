@@ -1,4 +1,4 @@
-package com.scubakay.pruned.data;
+package com.scubakay.pruned.domain;
 
 import net.minecraft.util.math.ChunkPos;
 
@@ -14,8 +14,7 @@ public class RegionPos {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof RegionPos)) return false;
-        RegionPos other = (RegionPos) o;
+        if (!(o instanceof RegionPos other)) return false;
         return x == other.x && z == other.z;
     }
 

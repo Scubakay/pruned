@@ -1,7 +1,5 @@
 package com.scubakay.pruned.data;
 
-import com.scubakay.pruned.PrunedMod;
-import com.scubakay.pruned.config.Config;
 import com.scubakay.pruned.storage.WorldUploader;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
@@ -12,12 +10,9 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.world.PersistentStateType;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class PrunedData extends PersistentState {
     private static MinecraftServer server;
@@ -53,48 +48,15 @@ public class PrunedData extends PersistentState {
         this.markDirty();
     }
 
-    // Debounce map: file path -> last update timestamp (ms)
-    private static final ConcurrentHashMap<Path, Long> lastUpdateTimes = new ConcurrentHashMap<>();
-    private static final long DEBOUNCE_INTERVAL_MS = Config.regionDebounceTime * 60_000L; // Per minute
-
     public void updateFile(Path path) {
-        String sha1 = getSha1(path);
-        if (sha1 == null) {
-            if (Config.debug) PrunedMod.LOGGER.info("Could not get sha1 for {}", path);
-            return;
-        }
-        if (!this.files.containsKey(path) || !this.files.get(path).equals(sha1)) {
-            // Debounce after the file has been uploaded. Don't upload for a minute or so
-            long now = System.currentTimeMillis();
-            Long lastUpdate = lastUpdateTimes.get(path);
-            if (lastUpdate != null && (now - lastUpdate) < DEBOUNCE_INTERVAL_MS) {
-                return;
-            }
-            lastUpdateTimes.put(path, now);
-
-            if (Config.debug) PrunedMod.LOGGER.info("Scheduling {} for upload", path);
-            this.files.put(path, sha1);
-            this.markDirty();
-            WorldUploader.uploadFile(server, path);
-        } else {
-            //if (Config.debug) PrunedMod.LOGGER.info("File {} is already up to date", path);
-        }
+        this.files.put(path, "");
+        this.markDirty();
     }
 
     public void removeRegion(Path region) {
         this.files.remove(region);
         WorldUploader.removeFile(server, region);
         this.markDirty();
-    }
-
-    private String getSha1(Path path) {
-        try {
-            byte[] fileBytes = Files.readAllBytes(path);
-            byte[] hashBytes = MessageDigest.getInstance("SHA-1").digest(fileBytes);
-            return java.util.HexFormat.of().formatHex(hashBytes);
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     public static void setServer(MinecraftServer s) {
@@ -125,5 +87,9 @@ public class PrunedData extends PersistentState {
     private static PrunedData getState(ServerWorld serverWorld) {
         return serverWorld.getPersistentStateManager()
                 .getOrCreate(new PersistentStateType<>("pruned", PrunedData::new, CODEC, null));
+    }
+
+    public void updateSha1(Path path, String sha1) {
+        this.files.put(path, sha1);
     }
 }

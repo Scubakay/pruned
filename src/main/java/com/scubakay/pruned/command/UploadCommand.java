@@ -21,7 +21,7 @@ public class UploadCommand {
     }
 
     private static int upload(CommandContext<ServerCommandSource> source) {
-        WorldUploader.afterSave(source.getSource().getServer(), false, false);
+        WorldUploader.upload(source.getSource().getServer(), false, false);
         return 1;
     }
 }
