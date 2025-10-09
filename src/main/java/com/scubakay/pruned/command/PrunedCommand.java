@@ -1,5 +1,8 @@
 package com.scubakay.pruned.command;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -12,6 +15,8 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -53,8 +58,25 @@ public class PrunedCommand {
             replacements.put("%PRUNED_SAVE_OR_REMOVE_COMMAND%", player.pruned$isRegionHelperEnabled() ? "pruned save" : "pruned remove");
             replacements.put("%ENABLE_DISABLE_HELPER%", player.pruned$isRegionHelperEnabled() ? "Disable Helper" : "Enable Helper");
 
-            String dialogJson = DynamicDialogs.getDialogJson("pruned", replacements);
-            String command = String.format("dialog show @s %s", dialogJson);
+            boolean hasConfigurePermission = PermissionManager.hasPermission(context.getSource(), PermissionManager.CONFIGURE_PERMISSION);
+
+            JsonObject dialogObj = DynamicDialogs.getDialogJson("pruned");
+
+            if (hasConfigurePermission) {
+                InputStream is = PrunedCommand.class.getClassLoader().getResourceAsStream(
+                        "assets/pruned/dialog/webdav_config_button.json");
+                if (is != null) {
+                    JsonElement webdavButton = new com.google.gson.Gson().fromJson(new InputStreamReader(is), JsonElement.class);
+                    JsonArray actions = dialogObj.has("actions") && dialogObj.get("actions").isJsonArray()
+                            ? dialogObj.getAsJsonArray("actions")
+                            : new JsonArray();
+                    actions.add(webdavButton);
+                    dialogObj.add("actions", actions);
+                }
+            }
+
+            String finalDialogJson = DynamicDialogs.parseDialogJson(dialogObj, replacements);
+            String command = String.format("dialog show @s %s", finalDialogJson);
             context.getSource().getDispatcher().execute(command, context.getSource());
             return 1;
         } catch (NullPointerException | IOException e) {

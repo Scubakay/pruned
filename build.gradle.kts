@@ -157,6 +157,8 @@ dependencies {
         implementation("${dep.key.removePrefix("shadow.")}:${property(dep.key).toString()}")
         shadowLibrary("${dep.key.removePrefix("shadow.")}:${property(dep.key).toString()}")
     }
+
+    implementation("com.google.code.gson:gson:2.10.1")
 }
 
 //region Building

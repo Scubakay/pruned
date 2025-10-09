@@ -1,5 +1,6 @@
 package com.scubakay.pruned.command;
 
+import com.google.gson.JsonObject;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -50,7 +51,8 @@ public class WebDavCommand {
             replacements.put("%ENDPOINT%", Config.webDavEndpoint != null ? Config.webDavEndpoint : "");
             replacements.put("%USERNAME%", Config.webDavUsername != null ? Config.webDavUsername : "");
 
-            String dialogJson = DynamicDialogs.getDialogJson("webdav_config", replacements);
+            JsonObject dialogObj = DynamicDialogs.getDialogJson("webdav_config");
+            String dialogJson = DynamicDialogs.parseDialogJson(dialogObj, replacements);
             String command = String.format("dialog show @s %s", dialogJson);
             context.getSource().getDispatcher().execute(command, context.getSource());
             return 1;
