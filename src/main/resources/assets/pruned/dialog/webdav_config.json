@@ -5,7 +5,7 @@
     {
       "type": "minecraft:plain_message",
       "contents": {
-        "text": "Use this to configure the webdav endpoint."
+        "text": "Use this to configure the webdav endpoint. Some WebDAV providers require you to use an application password."
       }
     },
     {

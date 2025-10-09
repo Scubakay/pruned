@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:multi_action",
+  "title": "Pruned",
+  "actions": [
+    {
+      "label": "Load",
+      "action": {
+        "type": "minecraft:run_command",
+        "template": "",
+        "command": "pruned"
+      }
+    }
+  ]
+}

@@ -3,7 +3,7 @@ package com.scubakay.pruned.mixin;
 import com.scubakay.pruned.data.PositionHelpers;
 import com.scubakay.pruned.data.PrunedData;
 import com.scubakay.pruned.data.RegionPos;
-import com.scubakay.pruned.data.ScoreboardManager;
+import com.scubakay.pruned.domain.PrunedServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.ClickEvent;
@@ -19,12 +19,11 @@ import java.nio.file.Path;
 
 @SuppressWarnings("UnusedMixin")
 @Mixin(ServerPlayerEntity.class)
-public class ServerPlayerEntityMixin {
+public class ServerPlayerEntityMixin implements PrunedServerPlayerEntity {
     @Unique
     private RegionPos previousChunk = new RegionPos(Integer.MIN_VALUE, Integer.MIN_VALUE);
 
-    @Inject(method = "tick", at = @At("HEAD"))
-    private void pruned$onTick(CallbackInfo ci) {
+    public void pruned$loadPrunedStatus() {
         ServerPlayerEntity player = (ServerPlayerEntity)(Object)this;
         RegionPos pos = RegionPos.from(player.getChunkPos());
         if (!previousChunk.equals(pos)) {
@@ -32,12 +31,11 @@ public class ServerPlayerEntityMixin {
 
             MinecraftServer server = player.getServer();
             Path regionFile = PositionHelpers.regionPosToRegionFile(server, player.getWorld().getRegistryKey(), pos);
-            boolean inWorldDownload = PrunedData.getServerState(server).getFiles().containsKey(regionFile);
+            regionInWorldDownload = PrunedData.getServerState(server).getFiles().containsKey(regionFile);
 
-            ScoreboardManager.setBooleanScore(player, ScoreboardManager.PRUNED_CURRENT_REGION_IS_SAVED, inWorldDownload);
-            if (ScoreboardManager.getBooleanScore(player, ScoreboardManager.PRUNED_CHECK_SCOREBOARD)) {
+            if (regionHelperEnabled) {
                 Text message;
-                if (inWorldDownload) {
+                if (regionInWorldDownload) {
                     message = Text.literal(String.format("Current region (%s) is in the world download ", pos.toString()))
                             .append(Text.literal("[Remove]")
                                     .styled(style -> style
@@ -57,5 +55,36 @@ public class ServerPlayerEntityMixin {
                 player.sendMessage(message, false);
             }
         }
+    }
+
+    @Unique
+    private boolean regionInWorldDownload;
+
+    @Override
+    public boolean pruned$isRegionSaved() {
+        return regionInWorldDownload;
+    }
+
+    @Override
+    public void pruned$setIsRegionSaved(boolean value) {
+        this.regionInWorldDownload = value;
+    }
+
+    @Unique
+    private boolean regionHelperEnabled;
+
+    @Override
+    public boolean pruned$isRegionHelperEnabled() {
+        return regionHelperEnabled;
+    }
+
+    @Override
+    public void pruned$toggleRegionHelper() {
+        this.regionHelperEnabled = !this.regionHelperEnabled;
+    }
+
+    @Inject(method = "tick", at = @At("HEAD"))
+    private void pruned$onTick(CallbackInfo ci) {
+        pruned$loadPrunedStatus();
     }
 }

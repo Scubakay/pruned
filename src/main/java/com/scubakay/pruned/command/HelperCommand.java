@@ -3,7 +3,7 @@ package com.scubakay.pruned.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
-import com.scubakay.pruned.data.ScoreboardManager;
+import com.scubakay.pruned.domain.PrunedServerPlayerEntity;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -11,18 +11,23 @@ import net.minecraft.text.Text;
 
 import static com.scubakay.pruned.command.PermissionManager.*;
 
-public class CheckCommand {
+public class HelperCommand {
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess ignoredRegistry, CommandManager.RegistrationEnvironment ignoredEnvironment) {
-        LiteralCommandNode<ServerCommandSource> checkNode = CommandManager.literal("check")
+        LiteralCommandNode<ServerCommandSource> checkNode = CommandManager.literal("helper")
                 .requires(ctx -> hasPermission(ctx, REGION_PERMISSION))
-                .executes(CheckCommand::toggleCheck)
+                .executes(HelperCommand::toggleCheck)
                 .build();
-        Commands.getRoot(dispatcher).addChild(checkNode);
+        PrunedCommand.getRoot(dispatcher).addChild(checkNode);
     }
 
     private static int toggleCheck(CommandContext<ServerCommandSource> context) {
-        boolean prunedCheck = ScoreboardManager.toggleBooleanScore(context.getSource().getPlayer(), ScoreboardManager.PRUNED_CHECK_SCOREBOARD);
-        context.getSource().sendFeedback(() -> Text.literal(String.format("Pruned region check %s",prunedCheck ? "enabled" : "disabled")), false);
+        PrunedServerPlayerEntity player = (PrunedServerPlayerEntity) context.getSource().getPlayer();
+        if (player == null) {
+            context.getSource().sendError(Text.literal("This command is only client side only"));
+            return 0;
+        }
+        player.pruned$toggleRegionHelper();
+        context.getSource().sendFeedback(() -> Text.literal(String.format("Pruned region helper %s",player.pruned$isRegionHelperEnabled() ? "enabled" : "disabled")), false);
         return 1;
     }
 }

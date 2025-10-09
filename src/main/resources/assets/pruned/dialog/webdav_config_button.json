@@ -1,0 +1,8 @@
+{
+  "label": "WebDav Configuration",
+  "tooltip": "Enter your login information for a WebDAV server.",
+  "action": {
+    "type": "minecraft:run_command",
+    "command": "pruned login webdav"
+  }
+}

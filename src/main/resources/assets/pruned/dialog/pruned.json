@@ -1,0 +1,41 @@
+{
+  "type": "minecraft:multi_action",
+  "title": "Pruned",
+  "body": [
+    {
+      "type": "minecraft:plain_message",
+      "contents": {
+        "text": "Manage if the current chunk is saved to the world download."
+      }
+    },
+    {
+      "type": "minecraft:plain_message",
+      "contents": [
+        "Saved in world download: ",
+        {
+          "text": "%REGION_IN_WORLD_DOWNLOAD%",
+          "color": "%REGION_IN_WORLD_DOWNLOAD_COLOR%"
+        }
+      ]
+    }
+  ],
+  "columns": 1,
+  "actions": [
+    {
+      "label": "%ADD_OR_REMOVE%",
+      "tooltip": "%ADD_OR_REMOVE_TOOLTIP%",
+      "action": {
+        "type": "minecraft:run_command",
+        "command": "%PRUNED_SAVE_OR_REMOVE_COMMAND%"
+      }
+    },
+    {
+      "label": "%ENABLE_DISABLE_HELPER%",
+      "tooltip": "Helps you save or remove regions by moving between them",
+      "action": {
+        "type": "minecraft:run_command",
+        "command": "pruned helper"
+      }
+    }
+  ]
+}

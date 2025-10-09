@@ -1,6 +1,5 @@
 package com.scubakay.pruned.command;
 
-import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -26,23 +25,23 @@ import java.util.Map;
 import static com.scubakay.pruned.command.PermissionManager.CONFIGURE_PERMISSION;
 import static com.scubakay.pruned.command.PermissionManager.hasPermission;
 
-public class WebDavLoginCommand {
+public class WebDavCommand {
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess ignoredRegistry, CommandManager.RegistrationEnvironment ignoredEnvironment) {
         // Subcommand to open the dialog
         ArgumentCommandNode<ServerCommandSource, String> loginNode = CommandManager.argument("endpoint", StringArgumentType.string())
             .then(CommandManager.argument("username", StringArgumentType.string())
                 .then(CommandManager.argument("password", StringArgumentType.string())
-                    .executes(WebDavLoginCommand::login)
+                    .executes(WebDavCommand::login)
                 )
             ).build();
 
         LiteralCommandNode<ServerCommandSource> openDialogNode = CommandManager.literal("login")
             .requires(ctx -> hasPermission(ctx, CONFIGURE_PERMISSION))
             .then(CommandManager.literal("webdav")
-                .executes(WebDavLoginCommand::openWebDavConfigDialog)
+                .executes(WebDavCommand::openWebDavConfigDialog)
                 .then(loginNode)
             ).build();
-        Commands.getRoot(dispatcher).addChild(openDialogNode);
+        PrunedCommand.getRoot(dispatcher).addChild(openDialogNode);
     }
 
     private static int openWebDavConfigDialog(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {

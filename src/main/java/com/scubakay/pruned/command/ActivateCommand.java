@@ -3,7 +3,6 @@ package com.scubakay.pruned.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
-import com.scubakay.pruned.config.Config;
 import com.scubakay.pruned.data.PrunedData;
 import com.scubakay.pruned.storage.WorldUploader;
 import net.minecraft.command.CommandRegistryAccess;
@@ -20,13 +19,13 @@ public class ActivateCommand {
                 .requires(ctx -> hasPermission(ctx, CONFIGURE_PERMISSION))
                 .executes(ActivateCommand::activate)
                 .build();
-        Commands.getRoot(dispatcher).addChild(activateNode);
+        PrunedCommand.getRoot(dispatcher).addChild(activateNode);
 
         LiteralCommandNode<ServerCommandSource> deactivateNode = CommandManager.literal("deactivate")
                 .requires(ctx -> hasPermission(ctx, CONFIGURE_PERMISSION))
                 .executes(ActivateCommand::deactivate)
                 .build();
-        Commands.getRoot(dispatcher).addChild(deactivateNode);
+        PrunedCommand.getRoot(dispatcher).addChild(deactivateNode);
     }
 
     private static int activate(CommandContext<ServerCommandSource> source) {

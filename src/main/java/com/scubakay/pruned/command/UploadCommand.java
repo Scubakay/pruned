@@ -17,7 +17,7 @@ public class UploadCommand {
                 .requires(ctx -> hasPermission(ctx, CONFIGURE_PERMISSION))
                 .executes(UploadCommand::upload)
                 .build();
-        Commands.getRoot(dispatcher).addChild(uploadNode);
+        PrunedCommand.getRoot(dispatcher).addChild(uploadNode);
     }
 
     private static int upload(CommandContext<ServerCommandSource> source) {
