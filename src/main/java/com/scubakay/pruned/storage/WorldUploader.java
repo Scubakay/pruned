@@ -22,8 +22,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @SuppressWarnings("CallToPrintStackTrace")
 public class WorldUploader {
     // Single-threaded executor for uploads (can be changed to multithreaded if needed)
-    private static final ExecutorService uploadExecutor = Executors.newSingleThreadExecutor();
-    private static final ExecutorService removeExecutor = Executors.newSingleThreadExecutor();
+    private static final ExecutorService uploadExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    private static final ExecutorService removeExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
     // Track files currently queued or uploading
     private static final Set<String> uploadingFiles = ConcurrentHashMap.newKeySet();
