@@ -4,6 +4,9 @@ import com.github.sardine.Sardine;
 import com.github.sardine.SardineFactory;
 import com.scubakay.pruned.PrunedMod;
 import com.scubakay.pruned.config.Config;
+import com.scubakay.pruned.exception.CreateFolderException;
+import com.scubakay.pruned.exception.RemoveException;
+import com.scubakay.pruned.exception.UploadException;
 import com.scubakay.pruned.util.MachineIdentifier;
 import com.scubakay.pruned.util.PasswordEncryptor;
 import net.minecraft.server.MinecraftServer;
@@ -15,16 +18,20 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 public class WebDAVStorage {
     private static WebDAVStorage instance;
     private final Sardine sardine;
+    private final List<URL> existingFolders;
 
     private WebDAVStorage() {
         String machineId = MachineIdentifier.getMachineId();
         String decryptedPassword = PasswordEncryptor.decrypt(Config.webDavPassword, machineId);
         sardine = SardineFactory.begin(Config.webDavUsername, decryptedPassword);
-        sardine.enablePreemptiveAuthentication(getHostFromEndpoint(Config.webDavEndpoint));
+        sardine.enablePreemptiveAuthentication(URI.create(Config.webDavEndpoint).getHost());
+        existingFolders = new ArrayList<>();
     }
 
     public static WebDAVStorage getInstance() {
@@ -39,7 +46,7 @@ public class WebDAVStorage {
         PrunedMod.LOGGER.info("Connecting to WebDAV server...");
         instance = new WebDAVStorage();
         try {
-            instance.sardine.list(getPrunedUri().toString());
+            instance.getOrCreateFolder(getEndpoint());
             PrunedMod.LOGGER.info("Connected to WebDAV server");
         } catch (Exception e) {
             instance = null;
@@ -52,71 +59,62 @@ public class WebDAVStorage {
         // Should probably cancel all running uploads or something.
     }
 
-    public void uploadFile(Path filepath, Path relativePath) {
-        URL fileUri = null;
+    public void uploadFile(Path filepath, Path relativePath) throws UploadException {
+        URL fileURL = null;
         String mimeType = "";
         try {
-            URL prunedFolder = getOrCreatePrunedFolder();
-            createParentRecursive(prunedFolder, relativePath);
-
-            fileUri = getUrl(prunedFolder, relativePath);
             mimeType = Files.probeContentType(filepath);
             if (mimeType == null) mimeType = "application/octet-stream";
             byte[] fileBytes = Files.readAllBytes(filepath.normalize());
 
-            sardine.put(fileUri.toString(), fileBytes);
-            if (Config.debug) PrunedMod.LOGGER.info("Uploaded: {}", relativePath);
-        } catch (MalformedURLException | URISyntaxException e) {
-            if (Config.debug) PrunedMod.LOGGER.error("Could not form URL: {}", e.getMessage());
-        } catch (Exception e) {
-            if (Config.debug) PrunedMod.LOGGER.error("Failed to upload {} file {} to {}: {}", mimeType, filepath.getFileName(), fileUri, e.getMessage());
+            sardine.put(resolveHostUrl(relativePath).toString(), fileBytes);
+        } catch (CreateFolderException e) {
+            throw new UploadException(String.format("Could not form URL: %s", e.getMessage()));
+        } catch (IOException e) {
+            throw new UploadException(String.format("Failed to upload %s file %s to %s: %s", mimeType, filepath.getFileName(), fileURL, e.getMessage()));
         }
     }
 
-    public void removeWorldFile(Path relativePath) {
+    public void removeWorldFile(Path relativePath) throws RemoveException {
         try {
-            URL prunedFolder = getOrCreatePrunedFolder();
-            URL fileUri = getUrl(prunedFolder, relativePath);
-            sardine.delete(fileUri.toString());
-            if (Config.debug) PrunedMod.LOGGER.info("Removed: {}", relativePath);
-        } catch (MalformedURLException | URISyntaxException e) {
-            if (Config.debug) PrunedMod.LOGGER.error("Could not form URL: {}", e.getMessage());
+            sardine.delete(resolveHostUrl(relativePath).toString());
+        } catch (CreateFolderException e) {
+            throw new RemoveException(String.format("Could not form URL: %s", e.getMessage()));
         } catch (Exception e) {
-            if (Config.debug) PrunedMod.LOGGER.error("Failed to remove file {}", e.getMessage());
+            throw new RemoveException(String.format("Failed to remove file %s", e.getMessage()));
         }
     }
 
-    private void createParentRecursive(URL baseUrl, Path relativePath) {
+    private URL getUploadFolder(URL baseUrl, Path relativePath) throws CreateFolderException {
         Path parent = relativePath.getParent();
-        if (parent == null) return;
+        if (parent == null) return baseUrl;
+        getUploadFolder(baseUrl, parent);
+        return getOrCreateFolder(resolveHostUrl(parent));
+    }
+
+    private URL getWorldSaveFolder(String worldName) throws MalformedURLException, URISyntaxException {
+        return getOrCreateFolder(getWorldSaveURL(worldName));
+    }
+
+    private URL resolveHostUrl(Path relativePath) throws CreateFolderException {
         try {
-            createParentRecursive(baseUrl, parent);
-            URL folderUri = getUrl(baseUrl, parent);
-            getOrCreateFolder(folderUri);
+            URL prunedFolder = getWorldSaveFolder(relativePath.getName(0).toString());
+            URL uploadFolder = getUploadFolder(prunedFolder, relativePath);
+            return uploadFolder.toURI().resolve(relativePath.toString()).normalize().toURL();
         } catch (MalformedURLException | URISyntaxException e) {
-            if (Config.debug) PrunedMod.LOGGER.info("Malformed URL: {} + {}; {}", baseUrl, relativePath, e.getMessage());
+            throw new CreateFolderException(e.getMessage());
         }
-    }
-
-    private URL getOrCreatePrunedFolder() throws MalformedURLException {
-        return getOrCreateFolder(getPrunedUri());
-    }
-
-    private URL getUrl(URL prunedFolder, Path relativePath) throws MalformedURLException, URISyntaxException {
-        StringBuilder encodedPath = new StringBuilder();
-        for (Path segment : relativePath) {
-            String s = segment.toString().replace(" ", "%20");
-            if (!encodedPath.isEmpty()) encodedPath.append("/");
-            encodedPath.append(s);
-        }
-        return prunedFolder.toURI().resolve(encodedPath.toString()).toURL();
     }
 
     private URL getOrCreateFolder(URL url) {
         try {
+            if (this.existingFolders.contains(url)) {
+                return url;
+            }
             if (!sardine.exists(url.toString())) {
                 sardine.createDirectory(url.toString());
                 if (Config.debug) PrunedMod.LOGGER.info("Created folder {}", url);
+                this.existingFolders.add(url);
             }
         } catch (IOException e) {
             //noinspection StatementWithEmptyBody
@@ -130,20 +128,15 @@ public class WebDAVStorage {
         return url;
     }
 
-    private static URL getPrunedUri() throws MalformedURLException {
-        String endpoint = Config.webDavEndpoint;
-        if (!endpoint.endsWith("/")) endpoint += "/";
-        endpoint += "Pruned/";
-        return URI.create(endpoint).toURL();
+    private static URL getWorldSaveURL(String worldName) throws MalformedURLException {
+        URI endpointUri = URI.create(Config.webDavEndpoint);
+        URI worldUri = endpointUri.resolve("Pruned/").resolve(worldName + "/");
+        return worldUri.toURL();
     }
 
-    private static String getHostFromEndpoint(String endpoint) {
-        try {
-            URI uri = URI.create(endpoint);
-            return uri.getHost();
-        } catch (Exception e) {
-            if (Config.debug) PrunedMod.LOGGER.error("Failed to parse WebDAV endpoint host: {}", e.getMessage());
-            return endpoint; // fallback
-        }
+    private static URL getEndpoint() throws MalformedURLException {
+        return URI.create(Config.webDavEndpoint)
+                .resolve("Pruned")
+                .toURL();
     }
 }

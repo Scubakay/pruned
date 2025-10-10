@@ -3,6 +3,8 @@ package com.scubakay.pruned.storage;
 import com.scubakay.pruned.PrunedMod;
 import com.scubakay.pruned.config.Config;
 import com.scubakay.pruned.data.PrunedData;
+import com.scubakay.pruned.exception.RemoveException;
+import com.scubakay.pruned.exception.UploadException;
 import com.scubakay.pruned.util.FileHasher;
 import com.scubakay.pruned.util.IgnoreList;
 import net.minecraft.server.MinecraftServer;
@@ -50,7 +52,10 @@ public class WorldUploader {
     }
 
     public static void uploadFile(MinecraftServer server, Path path) {
-        if (!WebDAVStorage.isConnected()) return;
+        if (!WebDAVStorage.isConnected()) {
+            PrunedMod.LOGGER.error("Uploading file failed: Not connected to WebDAV server");
+            return;
+        }
 
         String sha1 = PrunedData.getServerState(server).getSha1(path);
         String newSha1 = FileHasher.getSha1(path);
@@ -65,27 +70,36 @@ public class WorldUploader {
             uploadExecutor.submit(() -> {
                 try {
                     WebDAVStorage.getInstance().uploadFile(path, relativePath);
+                } catch (UploadException e) {
+                    PrunedMod.LOGGER.error("Failed to upload {}", relativePath);
                 } finally {
                     uploadingFiles.remove(path.toString());
                     PrunedData.getServerState(server).updateSha1(path, newSha1);
-                    if (Config.debug) PrunedMod.LOGGER.info("Uploaded: {}", path);
+                    if (Config.debug) PrunedMod.LOGGER.info("Uploaded {}", relativePath);
                 }
             });
         }
     }
 
     public static void removeFile(MinecraftServer server, Path path) {
-        if (!WebDAVStorage.isConnected()) return;
+        if (!WebDAVStorage.isConnected()) {
+            PrunedMod.LOGGER.error("Removing file failed: Not connected to WebDAV server");
+            return;
+        }
 
-        uploadingFiles.remove(path.toString());
+        removingFiles.remove(path.toString());
         Path savePath = server.getSavePath(WorldSavePath.ROOT);
         Path relativePath = savePath.getParent().getParent().relativize(path);
         if (removingFiles.add(path.toString())) {
             removeExecutor.submit(() -> {
                 try {
                     WebDAVStorage.getInstance().removeWorldFile(relativePath);
+                } catch (RemoveException e) {
+                    PrunedMod.LOGGER.error("Failed to remove {}: {}", relativePath, e.getMessage());
                 } finally {
                     removingFiles.remove(path.toString());
+                    PrunedData.getServerState(server).removeFile(path);
+                    if (Config.debug) PrunedMod.LOGGER.info("Removed {}", relativePath);
                 }
             });
         }
