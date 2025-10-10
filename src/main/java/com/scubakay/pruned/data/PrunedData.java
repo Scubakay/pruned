@@ -53,9 +53,9 @@ public class PrunedData extends PersistentState {
         this.markDirty();
     }
 
-    public void removeRegion(Path region) {
-        this.files.remove(region);
-        WorldUploader.removeFile(server, region);
+    public void removeFile(Path file) {
+        this.files.remove(file);
+        WorldUploader.removeFile(server, file);
         this.markDirty();
     }
 

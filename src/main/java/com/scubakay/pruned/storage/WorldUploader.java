@@ -31,7 +31,7 @@ public class WorldUploader {
 
     public static void upload(MinecraftServer server, boolean ignoredFlush, boolean ignoredForce) {
         final PrunedData serverState = PrunedData.getServerState(server);
-        if (!Config.autoSync || !serverState.isActive()) {
+        if (!Config.autoAddInhabitedChunks || !serverState.isActive()) {
             return;
         }
 

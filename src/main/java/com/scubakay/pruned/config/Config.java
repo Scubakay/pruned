@@ -22,9 +22,7 @@ public class Config extends MidnightConfig {
 
     // Automatically add chunks to the world download when the inhabited time increases to inhabitedTime
     @Entry()
-    public static boolean autoSync = true;
-    @Entry()
-    public static int regionDebounceTime = 5;
+    public static boolean autoAddInhabitedChunks = true;
 
     @Hidden
     @Entry()

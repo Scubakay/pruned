@@ -56,7 +56,7 @@ public class PrunedCommand {
             replacements.put("%ADD_OR_REMOVE%", player.pruned$isRegionSaved() ? "Remove" : "Add");
             replacements.put("%ADD_OR_REMOVE_COLOR%", player.pruned$isRegionSaved() ? "red" : "green");
             replacements.put("%ADD_OR_REMOVE_TOOLTIP%", player.pruned$isRegionSaved() ? "Remove the current region from the world download" : "Add the current region to the world download");
-            replacements.put("%PRUNED_SAVE_OR_REMOVE_COMMAND%", player.pruned$isRegionSaved() ? "pruned save" : "pruned remove");
+            replacements.put("%PRUNED_SAVE_OR_REMOVE_COMMAND%", player.pruned$isRegionSaved() ? "pruned remove" : "pruned save");
             replacements.put("%ENABLE_DISABLE_HELPER%", player.pruned$isRegionHelperEnabled() ? "Disable Helper" : "Enable Helper");
             replacements.put("%ENABLE_DISABLE_HELPER_COLOR%", player.pruned$isRegionHelperEnabled() ? "red" : "green");
 

@@ -51,18 +51,16 @@ public class ServerPlayerEntityMixin implements PrunedServerPlayerEntity {
 
     @Inject(method = "tick", at = @At("HEAD"))
     private void pruned$onTick(CallbackInfo ci) {
-        pruned$loadPrunedStatus();
-    }
-
-    public void pruned$loadPrunedStatus() {
         ServerPlayerEntity player = (ServerPlayerEntity)(Object)this;
         RegionPos pos = RegionPos.from(player.getChunkPos());
-
         if (!previousChunk.equals(pos)) {
             previousChunk = pos;
+
+            pruned$loadPrunedStatus(player, pos);
+
             if (regionHelperEnabled) {
                 Text message = getHelperMessage(
-                        String.format("Current region (%s) is %sin the world download ", pos.toString(), regionInWorldDownload ? "" : "not"),
+                        String.format("Current region (%s) is %sin the world download ", pos, regionInWorldDownload ? "" : "not"),
                         regionInWorldDownload ? "Remove" : "[Add]",
                         regionInWorldDownload ? "/pruned remove" : "/pruned save",
                         regionInWorldDownload ? Colors.RED : Colors.GREEN
@@ -70,7 +68,10 @@ public class ServerPlayerEntityMixin implements PrunedServerPlayerEntity {
                 player.sendMessage(message, false);
             }
         }
+    }
 
+    @Unique
+    public void pruned$loadPrunedStatus(ServerPlayerEntity player, RegionPos pos) {
         MinecraftServer server = player.getServer();
         Path regionFile = PositionHelpers.regionPosToRegionFile(server, player.getWorld().getRegistryKey(), pos);
         regionInWorldDownload = PrunedData.getServerState(server).getFiles().containsKey(regionFile);

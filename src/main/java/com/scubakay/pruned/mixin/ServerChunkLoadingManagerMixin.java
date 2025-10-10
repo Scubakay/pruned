@@ -29,6 +29,9 @@ public class ServerChunkLoadingManagerMixin {
         at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiler/Profiler;visit(Ljava/lang/String;)V", shift = At.Shift.AFTER)
     )
     private void onChunkSave(Chunk chunk, CallbackInfoReturnable<Boolean> cir) {
+        if (!Config.autoAddInhabitedChunks) {
+            return;
+        }
         PrunedData pruned = PrunedData.getServerState();
         long minInhabitedTimeInTicks = Config.inhabitedTime * 20 * 60L;
         if (pruned != null && pruned.isActive()) {
