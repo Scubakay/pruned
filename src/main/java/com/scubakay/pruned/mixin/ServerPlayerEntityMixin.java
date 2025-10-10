@@ -1,5 +1,6 @@
 package com.scubakay.pruned.mixin;
 
+import com.scubakay.pruned.util.DimensionHelper;
 import com.scubakay.pruned.util.PositionHelpers;
 import com.scubakay.pruned.data.PrunedData;
 import com.scubakay.pruned.domain.RegionPos;
@@ -59,8 +60,9 @@ public class ServerPlayerEntityMixin implements PrunedServerPlayerEntity {
             pruned$loadPrunedStatus(player, pos);
 
             if (regionHelperEnabled) {
+                String dimension = DimensionHelper.getFormattedDimension(player.getWorld().getRegistryKey());
                 Text message = getHelperMessage(
-                        String.format("Current region (%s) is %sin the world download ", pos, regionInWorldDownload ? "" : "not"),
+                        String.format("Current region (%s: %s) is %sin the world download ", dimension, pos, regionInWorldDownload ? "" : "not "),
                         regionInWorldDownload ? "[Remove]" : "[Add]",
                         regionInWorldDownload ? "/pruned remove" : "/pruned save",
                         regionInWorldDownload ? Colors.RED : Colors.GREEN

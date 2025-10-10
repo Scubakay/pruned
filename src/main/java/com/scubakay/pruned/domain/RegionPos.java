@@ -25,7 +25,7 @@ public class RegionPos {
 
     @Override
     public String toString() {
-        return "RegionPos{x=" + x + ", z=" + z + '}';
+        return x + ", " + z;
     }
 
     public static RegionPos from(ChunkPos pos) {
