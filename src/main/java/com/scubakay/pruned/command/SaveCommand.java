@@ -3,6 +3,7 @@ package com.scubakay.pruned.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
+import com.scubakay.pruned.storage.WorldUploader;
 import com.scubakay.pruned.util.PositionHelpers;
 import com.scubakay.pruned.data.PrunedData;
 import com.scubakay.pruned.domain.RegionPos;
@@ -59,12 +60,13 @@ public class SaveCommand {
     }
 
     private static void addRegionToPrunedData(CommandContext<ServerCommandSource> source, RegionPos pos) {
-        Path regionFile = PositionHelpers.regionPosToRegionFile(source.getSource().getServer(), source.getSource().getWorld().getRegistryKey(), pos);
-        PrunedData.getServerState(source.getSource().getServer()).updateFile(regionFile);
+        Path path = PositionHelpers.regionPosToRegionFile(source.getSource().getServer(), source.getSource().getWorld().getRegistryKey(), pos);
+        PrunedData.getServerState(source.getSource().getServer()).updateFile(path);
     }
 
     private static void removeRegionFromPrunedData(CommandContext<ServerCommandSource> source, RegionPos pos) {
-        Path regionFile = PositionHelpers.regionPosToRegionFile(source.getSource().getServer(), source.getSource().getWorld().getRegistryKey(), pos);
-        PrunedData.getServerState(source.getSource().getServer()).removeFile(regionFile);
+        Path path = PositionHelpers.regionPosToRegionFile(source.getSource().getServer(), source.getSource().getWorld().getRegistryKey(), pos);
+        PrunedData.getServerState(source.getSource().getServer()).removeFile(path);
+        WorldUploader.removeFile(source.getSource().getServer(), path);
     }
 }

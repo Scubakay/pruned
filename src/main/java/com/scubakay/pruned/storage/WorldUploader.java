@@ -3,23 +3,20 @@ package com.scubakay.pruned.storage;
 import com.scubakay.pruned.PrunedMod;
 import com.scubakay.pruned.config.Config;
 import com.scubakay.pruned.data.PrunedData;
+import com.scubakay.pruned.util.FileHasher;
+import com.scubakay.pruned.util.IgnoreList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.WorldSavePath;
 
-import java.nio.file.Path;
-import java.nio.file.Files;
-import java.nio.file.DirectoryStream;
 import java.io.IOException;
-import java.security.MessageDigest;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-@SuppressWarnings("CallToPrintStackTrace")
 public class WorldUploader {
     // Single-threaded executor for uploads (can be changed to multithreaded if needed)
     private static final ExecutorService uploadExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
@@ -29,52 +26,38 @@ public class WorldUploader {
     private static final Set<String> uploadingFiles = ConcurrentHashMap.newKeySet();
     private static final Set<String> removingFiles = ConcurrentHashMap.newKeySet();
 
-    public static void upload(MinecraftServer server, boolean ignoredFlush, boolean ignoredForce) {
-        final PrunedData serverState = PrunedData.getServerState(server);
-        if (!Config.autoAddInhabitedChunks || !serverState.isActive()) {
+    public static void upload(MinecraftServer server) {
+        if (!PrunedData.getServerState(server).isActive()) {
+            if (Config.debug) PrunedMod.LOGGER.info("Can't upload: Pruned is not active on this world.");
             return;
         }
-
-        Path path = server.getSavePath(WorldSavePath.ROOT);
-        synchronizeWithIgnoreList(server, path);
-        uploadWorldFiles(server);
+        addNonRegionFiles(server, server.getSavePath(WorldSavePath.ROOT));
+        PrunedData.getServerState(server).getFiles().forEach((filePath, sha1) -> uploadFile(server, filePath));
     }
 
-    public static void uploadWorldFiles(MinecraftServer server) {
-        Map<Path, String> files = PrunedData.getServerState(server).getFiles();
-        files.forEach((path, sha1) -> {
-            String newSha1 = getSha1(path);
-            if (newSha1 == null) {
-                if (Config.debug) PrunedMod.LOGGER.info("Could not get sha1 for {}", path);
-                return;
-            }
-            if (!newSha1.equals(sha1)) {
-                uploadWorldFile(server, path, newSha1);
-            }
-        });
-    }
-
-    public static void synchronizeWithIgnoreList(MinecraftServer server, Path path) {
-        synchronizeRecursive(server, path);
-    }
-
-    private static void synchronizeRecursive(MinecraftServer server, Path currentPath) {
+    private static void addNonRegionFiles(MinecraftServer server, Path currentPath) {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(currentPath)) {
             for (Path entry : stream) {
                 if (Files.isDirectory(entry)) {
-                    synchronizeRecursive(server, entry);
-                } else if (Files.isRegularFile(entry) && !isIgnored(entry)) {
-                    PrunedData.getServerState(server).updateFile(entry.normalize());
+                    addNonRegionFiles(server, entry);
+                } else if (Files.isRegularFile(entry) && !IgnoreList.isIgnored(entry)) {
+                    PrunedData.getServerState(server).updateFile(entry);
                 }
             }
         } catch (IOException e) {
-            PrunedMod.LOGGER.info("Something went wrong trying to add file {} to the world download", currentPath.toAbsolutePath());
-            e.printStackTrace();
+            PrunedMod.LOGGER.info("Something went wrong trying to add file {} to the world download: {}", currentPath.toAbsolutePath(), e.getMessage());
         }
     }
 
-    public static void uploadWorldFile(MinecraftServer server, Path path, String newSha1) {
+    public static void uploadFile(MinecraftServer server, Path path) {
         if (!WebDAVStorage.isConnected()) return;
+
+        String sha1 = PrunedData.getServerState(server).getSha1(path);
+        String newSha1 = FileHasher.getSha1(path);
+        if (newSha1.equals(sha1)) {
+            if (Config.debug) PrunedMod.LOGGER.info("Skipping up to date file: {}", path);
+            return;
+        }
 
         Path savePath = server.getSavePath(WorldSavePath.ROOT);
         Path relativePath = savePath.getParent().getParent().relativize(path);
@@ -85,6 +68,7 @@ public class WorldUploader {
                 } finally {
                     uploadingFiles.remove(path.toString());
                     PrunedData.getServerState(server).updateSha1(path, newSha1);
+                    if (Config.debug) PrunedMod.LOGGER.info("Uploaded: {}", path);
                 }
             });
         }
@@ -104,56 +88,6 @@ public class WorldUploader {
                     removingFiles.remove(path.toString());
                 }
             });
-        }
-    }
-
-    private static boolean isIgnored(Path relativePath) {
-        List<Pattern> ignoredPatterns = Config.ignored.stream()
-                .map(WorldUploader::gitignorePatternToRegex)
-                .map(Pattern::compile)
-                .toList();
-        return ignoredPatterns.stream().anyMatch(p -> p.matcher(relativePath.toString()).matches());
-    }
-
-    private static String gitignorePatternToRegex(String pattern) {
-        StringBuilder sb = new StringBuilder();
-        boolean anchored = pattern.startsWith("/");
-        String corePattern = anchored ? pattern.substring(1) : pattern;
-
-        sb.append(anchored ? "^" : ".*");
-
-        for (int i = 0; i < corePattern.length(); i++) {
-            char c = corePattern.charAt(i);
-            switch (c) {
-                case '*':
-                    sb.append(".*");
-                    break;
-                case '?':
-                    sb.append('.');
-                    break;
-                case '.':
-                    sb.append("\\.");
-                    break;
-                case '/':
-                    sb.append("/");
-                    break;
-                default:
-                    sb.append(Pattern.quote(String.valueOf(c)));
-                    break;
-            }
-        }
-
-        sb.append("$");
-        return sb.toString();
-    }
-
-    private static String getSha1(Path path) {
-        try {
-            byte[] fileBytes = Files.readAllBytes(path);
-            byte[] hashBytes = MessageDigest.getInstance("SHA-1").digest(fileBytes);
-            return java.util.HexFormat.of().formatHex(hashBytes);
-        } catch (Exception e) {
-            return null;
         }
     }
 }

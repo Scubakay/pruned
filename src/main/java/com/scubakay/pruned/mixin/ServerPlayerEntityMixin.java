@@ -61,7 +61,7 @@ public class ServerPlayerEntityMixin implements PrunedServerPlayerEntity {
             if (regionHelperEnabled) {
                 Text message = getHelperMessage(
                         String.format("Current region (%s) is %sin the world download ", pos, regionInWorldDownload ? "" : "not"),
-                        regionInWorldDownload ? "Remove" : "[Add]",
+                        regionInWorldDownload ? "[Remove]" : "[Add]",
                         regionInWorldDownload ? "/pruned remove" : "/pruned save",
                         regionInWorldDownload ? Colors.RED : Colors.GREEN
                 );

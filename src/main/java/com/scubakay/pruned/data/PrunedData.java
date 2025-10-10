@@ -1,6 +1,5 @@
 package com.scubakay.pruned.data;
 
-import com.scubakay.pruned.storage.WorldUploader;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.PersistentState;
@@ -48,14 +47,17 @@ public class PrunedData extends PersistentState {
         this.markDirty();
     }
 
+    public String getSha1(Path path) {
+        return this.files.get(path);
+    }
+
     public void updateFile(Path path) {
-        this.files.put(path, "");
+        this.files.put(path.normalize(), "");
         this.markDirty();
     }
 
-    public void removeFile(Path file) {
-        this.files.remove(file);
-        WorldUploader.removeFile(server, file);
+    public void removeFile(Path path) {
+        this.files.remove(path);
         this.markDirty();
     }
 

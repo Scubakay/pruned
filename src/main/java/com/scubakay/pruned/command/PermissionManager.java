@@ -14,6 +14,7 @@ public class PermissionManager {
     public static final String REMOVE_REGION_PERMISSION = REGION_PERMISSION + ".remove";
 
     public static final String CONFIGURE_PERMISSION = ROOT_PERMISSION + ".configure";
+    public static final String TRIGGER_UPLOAD_PERMISSION = ROOT_PERMISSION + ".trigger_upload";
 
     private static final boolean fabricPermissionsApi = FabricLoader.getInstance().isModLoaded("fabric-permissions-api-v0");
 

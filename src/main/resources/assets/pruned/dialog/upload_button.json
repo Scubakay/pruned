@@ -1,0 +1,8 @@
+{
+  "label": "Upload",
+  "tooltip": "Upload this world to the WebDAV server.",
+  "action": {
+    "type": "minecraft:run_command",
+    "command": "pruned upload"
+  }
+}

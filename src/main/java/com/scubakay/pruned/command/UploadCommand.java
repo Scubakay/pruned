@@ -3,6 +3,8 @@ package com.scubakay.pruned.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
+import com.scubakay.pruned.PrunedMod;
+import com.scubakay.pruned.config.Config;
 import com.scubakay.pruned.storage.WorldUploader;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
@@ -21,7 +23,8 @@ public class UploadCommand {
     }
 
     private static int upload(CommandContext<ServerCommandSource> source) {
-        WorldUploader.upload(source.getSource().getServer(), false, false);
+        if (Config.debug) PrunedMod.LOGGER.info("Starting Pruned World upload...");
+        WorldUploader.upload(source.getSource().getServer());
         return 1;
     }
 }
