@@ -100,8 +100,9 @@ public class WebDAVStorage {
         try {
             URL prunedFolder = getWorldSaveFolder(relativePath.getName(0).toString());
             URL uploadFolder = getUploadFolder(prunedFolder, relativePath);
-            return uploadFolder.toURI().resolve(relativePath.toString()).normalize().toURL();
-        } catch (MalformedURLException | URISyntaxException e) {
+            String uriPath = relativePath.toString().replace("\\", "/");
+            return uploadFolder.toURI().resolve(uriPath).normalize().toURL();
+        } catch (MalformedURLException | URISyntaxException | IllegalArgumentException e) {
             throw new CreateFolderException(e.getMessage());
         }
     }

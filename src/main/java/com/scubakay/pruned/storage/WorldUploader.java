@@ -70,12 +70,12 @@ public class WorldUploader {
             uploadExecutor.submit(() -> {
                 try {
                     WebDAVStorage.getInstance().uploadFile(path, relativePath);
-                } catch (UploadException e) {
-                    PrunedMod.LOGGER.error("Failed to upload {}", relativePath);
-                } finally {
-                    uploadingFiles.remove(path.toString());
                     PrunedData.getServerState(server).updateSha1(path, newSha1);
                     if (Config.debug) PrunedMod.LOGGER.info("Uploaded {}", relativePath);
+                } catch (Exception e) {
+                    PrunedMod.LOGGER.error("Failed to upload {}: {}", relativePath, e.getMessage());
+                } finally {
+                    uploadingFiles.remove(path.toString());
                 }
             });
         }
@@ -94,12 +94,12 @@ public class WorldUploader {
             removeExecutor.submit(() -> {
                 try {
                     WebDAVStorage.getInstance().removeWorldFile(relativePath);
-                } catch (RemoveException e) {
+                    PrunedData.getServerState(server).removeFile(path);
+                    if (Config.debug) PrunedMod.LOGGER.info("Removed {}", relativePath);
+                } catch (Exception e) {
                     PrunedMod.LOGGER.error("Failed to remove {}: {}", relativePath, e.getMessage());
                 } finally {
                     removingFiles.remove(path.toString());
-                    PrunedData.getServerState(server).removeFile(path);
-                    if (Config.debug) PrunedMod.LOGGER.info("Removed {}", relativePath);
                 }
             });
         }
