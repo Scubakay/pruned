@@ -18,20 +18,16 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 
 public class WebDAVStorage {
     private static WebDAVStorage instance;
     private final Sardine sardine;
-    private final List<URL> existingFolders;
 
     private WebDAVStorage() {
         String machineId = MachineIdentifier.getMachineId();
         String decryptedPassword = PasswordEncryptor.decrypt(Config.webDavPassword, machineId);
         sardine = SardineFactory.begin(Config.webDavUsername, decryptedPassword);
         sardine.enablePreemptiveAuthentication(URI.create(Config.webDavEndpoint).getHost());
-        existingFolders = new ArrayList<>();
     }
 
     public static WebDAVStorage getInstance() {
@@ -61,27 +57,26 @@ public class WebDAVStorage {
 
     public void uploadFile(Path filepath, Path relativePath) throws UploadException {
         URL fileURL = null;
-        String mimeType = "";
         try {
-            mimeType = Files.probeContentType(filepath);
-            if (mimeType == null) mimeType = "application/octet-stream";
             byte[] fileBytes = Files.readAllBytes(filepath.normalize());
-
-            sardine.put(resolveHostUrl(relativePath).toString(), fileBytes);
+            fileURL = resolveHostUrl(relativePath);
+            sardine.put(fileURL.toString(), fileBytes);
         } catch (CreateFolderException e) {
             throw new UploadException(String.format("Could not form URL: %s", e.getMessage()));
         } catch (IOException e) {
-            throw new UploadException(String.format("Failed to upload %s file %s to %s: %s", mimeType, filepath.getFileName(), fileURL, e.getMessage()));
+            throw new UploadException(String.format("Failed to upload %s to %s: %s", relativePath, fileURL, e.getMessage()));
         }
     }
 
     public void removeWorldFile(Path relativePath) throws RemoveException {
+        URL fileURL = null;
         try {
-            sardine.delete(resolveHostUrl(relativePath).toString());
+            fileURL = resolveHostUrl(relativePath);
+            sardine.delete(fileURL.toString());
         } catch (CreateFolderException e) {
             throw new RemoveException(String.format("Could not form URL: %s", e.getMessage()));
         } catch (Exception e) {
-            throw new RemoveException(String.format("Failed to remove file %s", e.getMessage()));
+            throw new RemoveException(String.format("Failed to remove %s from %s: %s", relativePath, fileURL, e.getMessage()));
         }
     }
 
@@ -100,8 +95,7 @@ public class WebDAVStorage {
         try {
             URL prunedFolder = getWorldSaveFolder(relativePath.getName(0).toString());
             URL uploadFolder = getUploadFolder(prunedFolder, relativePath);
-            String uriPath = relativePath.toString().replace("\\", "/");
-            return uploadFolder.toURI().resolve(uriPath).normalize().toURL();
+            return uploadFolder.toURI().resolve(relativePath.getFileName().toString()).normalize().toURL();
         } catch (MalformedURLException | URISyntaxException | IllegalArgumentException e) {
             throw new CreateFolderException(e.getMessage());
         }
@@ -109,20 +103,12 @@ public class WebDAVStorage {
 
     private URL getOrCreateFolder(URL url) {
         try {
-            if (this.existingFolders.contains(url)) {
-                return url;
-            }
             if (!sardine.exists(url.toString())) {
                 sardine.createDirectory(url.toString());
                 if (Config.debug) PrunedMod.LOGGER.info("Created folder {}", url);
-                this.existingFolders.add(url);
             }
         } catch (IOException e) {
-            //noinspection StatementWithEmptyBody
-            if (e.getMessage() != null && e.getMessage().contains("405")) {
-                // 405 Method Not Allowed: treat as folder already exists
-                //if (Config.debug) PrunedMod.LOGGER.info("Folder already exists (405) at: {}", url);
-            } else {
+            if (e.getMessage() == null || !e.getMessage().contains("405")) {
                 if (Config.debug) PrunedMod.LOGGER.error("Failed to create folder {}: {}", url, e.getMessage());
             }
         }

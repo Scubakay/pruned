@@ -3,8 +3,6 @@ package com.scubakay.pruned.storage;
 import com.scubakay.pruned.PrunedMod;
 import com.scubakay.pruned.config.Config;
 import com.scubakay.pruned.data.PrunedData;
-import com.scubakay.pruned.exception.RemoveException;
-import com.scubakay.pruned.exception.UploadException;
 import com.scubakay.pruned.util.FileHasher;
 import com.scubakay.pruned.util.IgnoreList;
 import net.minecraft.server.MinecraftServer;
@@ -74,10 +72,13 @@ public class WorldUploader {
                     if (Config.debug) PrunedMod.LOGGER.info("Uploaded {}", relativePath);
                 } catch (Exception e) {
                     PrunedMod.LOGGER.error("Failed to upload {}: {}", relativePath, e.getMessage());
+                    PrunedData.getServerState(server).updateSha1(path, "");
                 } finally {
                     uploadingFiles.remove(path.toString());
                 }
             });
+        } else {
+            if (Config.debug) PrunedMod.LOGGER.info("Couldn't schedule file upload: {}", relativePath);
         }
     }
 
@@ -102,6 +103,8 @@ public class WorldUploader {
                     removingFiles.remove(path.toString());
                 }
             });
+        } else {
+            if (Config.debug) PrunedMod.LOGGER.info("Couldn't schedule file removal: {}", relativePath);
         }
     }
 }
