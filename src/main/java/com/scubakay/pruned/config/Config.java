@@ -37,4 +37,7 @@ public class Config extends MidnightConfig {
     @Hidden
     @Entry()
     public static int permissionLevel = 4;
+
+    @Entry()
+    public static String uploadFolder = "Pruned";
 }
