@@ -14,17 +14,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class WorldUploader {
     // Single-threaded executor for uploads (can be changed to multithreaded if needed)
     private static final ExecutorService uploadExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     private static final ExecutorService removeExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-
-    // Track files currently queued or uploading
-    private static final Set<String> uploadingFiles = ConcurrentHashMap.newKeySet();
-    private static final Set<String> removingFiles = ConcurrentHashMap.newKeySet();
 
     public static void upload(MinecraftServer server) {
         if (!PrunedData.getServerState(server).isActive()) {
@@ -64,22 +58,16 @@ public class WorldUploader {
 
         Path savePath = server.getSavePath(WorldSavePath.ROOT);
         Path relativePath = savePath.getParent().getParent().relativize(path);
-        if (uploadingFiles.add(path.toString())) {
-            uploadExecutor.submit(() -> {
-                try {
-                    WebDAVStorage.getInstance().uploadFile(path, relativePath);
-                    PrunedData.getServerState(server).updateSha1(path, newSha1);
-                    if (Config.debug) PrunedMod.LOGGER.info("Uploaded {}", relativePath);
-                } catch (Exception e) {
-                    PrunedMod.LOGGER.error(e.getMessage());
-                    PrunedData.getServerState(server).updateSha1(path, "");
-                } finally {
-                    uploadingFiles.remove(path.toString());
-                }
-            });
-        } else {
-            if (Config.debug) PrunedMod.LOGGER.info("Couldn't schedule file upload: {}", relativePath);
-        }
+        uploadExecutor.submit(() -> {
+            try {
+                WebDAVStorage.getInstance().uploadFile(path, relativePath);
+                PrunedData.getServerState(server).updateSha1(path, newSha1);
+                if (Config.debug) PrunedMod.LOGGER.info("Uploaded {}", relativePath);
+            } catch (Exception e) {
+                PrunedMod.LOGGER.error(e.getMessage());
+                PrunedData.getServerState(server).updateSha1(path, "");
+            }
+        });
     }
 
     public static void removeFile(MinecraftServer server, Path path) {
@@ -88,23 +76,16 @@ public class WorldUploader {
             return;
         }
 
-        removingFiles.remove(path.toString());
         Path savePath = server.getSavePath(WorldSavePath.ROOT);
         Path relativePath = savePath.getParent().getParent().relativize(path);
-        if (removingFiles.add(path.toString())) {
-            removeExecutor.submit(() -> {
-                try {
-                    WebDAVStorage.getInstance().removeWorldFile(relativePath);
-                    PrunedData.getServerState(server).removeFile(path);
-                    if (Config.debug) PrunedMod.LOGGER.info("Removed {}", relativePath);
-                } catch (Exception e) {
-                    PrunedMod.LOGGER.error("Failed to remove {}: {}", relativePath, e.getMessage());
-                } finally {
-                    removingFiles.remove(path.toString());
-                }
-            });
-        } else {
-            if (Config.debug) PrunedMod.LOGGER.info("Couldn't schedule file removal: {}", relativePath);
-        }
+        removeExecutor.submit(() -> {
+            try {
+                WebDAVStorage.getInstance().removeWorldFile(relativePath);
+                PrunedData.getServerState(server).removeFile(path);
+                if (Config.debug) PrunedMod.LOGGER.info("Removed {}", relativePath);
+            } catch (Exception e) {
+                PrunedMod.LOGGER.error("Failed to remove {}: {}", relativePath, e.getMessage());
+            }
+        });
     }
 }

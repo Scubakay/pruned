@@ -4,6 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.scubakay.pruned.data.PrunedData;
+import com.scubakay.pruned.storage.WebDAVStorage;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -29,12 +30,14 @@ public class ActivateCommand {
 
     private static int activate(CommandContext<ServerCommandSource> source) {
         PrunedData.getServerState(source.getSource().getServer()).activate();
+        WebDAVStorage.connect(source.getSource().getServer());
         source.getSource().sendFeedback(() -> Text.translatable("pruned.command.activate", source.getSource().getServer().getName()), false);
         return 1;
     }
 
     private static int deactivate(CommandContext<ServerCommandSource> source) {
         PrunedData.getServerState(source.getSource().getServer()).deactivate();
+        WebDAVStorage.disconnect(source.getSource().getServer());
         source.getSource().sendFeedback(() -> Text.translatable("pruned.command.deactivate", source.getSource().getServer().getName()), false);
         return 1;
     }

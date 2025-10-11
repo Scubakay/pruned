@@ -32,7 +32,7 @@ public class WebDAVStorage {
         sardine.enablePreemptiveAuthentication(URI.create(Config.webDavEndpoint).getHost());
 
         worldSavePath = server.getSavePath(WorldSavePath.ROOT);
-        worldName = worldSavePath.getFileName().toString();
+        worldName = worldSavePath.getParent().getFileName().toString();
         worldSaveURL = URI.create(Config.webDavEndpoint)
                 .resolve(Config.uploadFolder + "/")
                 .resolve(worldName + "/");
@@ -99,7 +99,7 @@ public class WebDAVStorage {
         URI parent = uri; // get parent
         try {
             while (true) {
-                parent = parent.resolve("..");
+                parent = getParentUri(parent);
                 if (parent.equals(worldSaveURL) || sardine.exists(parent.toString())) {
                     break;
                 }
@@ -111,5 +111,13 @@ public class WebDAVStorage {
                 if (Config.debug) PrunedMod.LOGGER.error("Failed to create folder {}: {}", parent, e.getMessage());
             }
         }
+    }
+
+    private URI getParentUri(URI uri) {
+        String path = uri.getPath();
+        int lastSlash = path.lastIndexOf('/');
+        if (lastSlash <= 0) return uri; // Already at root
+        String parentPath = path.substring(0, lastSlash);
+        return URI.create(uri.getScheme() + "://" + uri.getHost() + parentPath);
     }
 }
