@@ -16,14 +16,16 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class WebDAVStorage {
     private static WebDAVStorage instance;
     private final Sardine sardine;
 
-    private final Path worldSavePath;
-    private final String worldName;
     private final URI worldSaveURL;
+
+    private static final ConcurrentMap<URI, Boolean> createdFolders = new ConcurrentHashMap<>();
 
     private WebDAVStorage(MinecraftServer server) {
         String machineId = MachineIdentifier.getMachineId();
@@ -31,8 +33,8 @@ public class WebDAVStorage {
         sardine = SardineFactory.begin(Config.webDavUsername, decryptedPassword);
         sardine.enablePreemptiveAuthentication(URI.create(Config.webDavEndpoint).getHost());
 
-        worldSavePath = server.getSavePath(WorldSavePath.ROOT);
-        worldName = worldSavePath.getParent().getFileName().toString();
+        Path worldSavePath = server.getSavePath(WorldSavePath.ROOT);
+        String worldName = worldSavePath.getParent().getFileName().toString();
         worldSaveURL = URI.create(Config.webDavEndpoint)
                 .resolve(Config.uploadFolder + "/")
                 .resolve(worldName + "/");
@@ -96,19 +98,39 @@ public class WebDAVStorage {
     }
 
     private void getOrCreateFolder(URI uri) {
-        URI parent = uri; // get parent
-        try {
-            while (true) {
-                parent = getParentUri(parent);
-                if (parent.equals(worldSaveURL) || sardine.exists(parent.toString())) {
-                    break;
+        while (true) {
+            URI parent = getParentUri(uri);
+            if (parent.equals(worldSaveURL) || createdFolders.containsKey(parent)) {
+                createdFolders.put(parent, true);
+                break;
+            }
+            synchronized (createdFolders) {
+                if (!createdFolders.containsKey(parent)) {
+                    createFolder(parent);
+                    createdFolders.put(parent, true);
                 }
-                sardine.createDirectory(parent.toString());
-                if (Config.debug) PrunedMod.LOGGER.info("Created folder {}", parent);
+            }
+        }
+    }
+
+    private void createFolder(URI uri) {
+        try {
+            if (!sardine.exists(uri.toString())) {
+                sardine.createDirectory(uri.toString());
+                if (Config.debug) PrunedMod.LOGGER.info("Created folder {}", uri);
             }
         } catch (IOException e) {
-            if (e.getMessage() == null || !e.getMessage().contains("405")) {
-                if (Config.debug) PrunedMod.LOGGER.error("Failed to create folder {}: {}", parent, e.getMessage());
+            String message = e.getMessage();
+            if (message.contains("409")) {
+                if (Config.debug) PrunedMod.LOGGER.error("Folder {} already exists (409 Conflict): {}", uri, message);
+            } else if (message.contains("400")) {
+                if (Config.debug) PrunedMod.LOGGER.error("Folder {} bad request (400 Bad Request): {}", uri, message);
+            } else if (message.contains("404")) {
+                if (Config.debug) PrunedMod.LOGGER.error("Folder {} not found (404 Not Found): {}", uri, message);
+            } else if (message.contains("405")) {
+                if (Config.debug) PrunedMod.LOGGER.error("Folder {} method not allowed (405 Method Not Allowed): {}", uri, message);
+            } else {
+                if (Config.debug) PrunedMod.LOGGER.error("Failed to create folder {}: {}", uri, message);
             }
         }
     }
