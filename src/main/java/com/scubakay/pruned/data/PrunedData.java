@@ -58,6 +58,10 @@ public class PrunedData extends PersistentState {
         this.markDirty();
     }
 
+    public void addFile(Path path) {
+        this.updateSha1(path, "");
+    }
+
     public String getSha1(Path path) {
         return this.files.get(path);
     }

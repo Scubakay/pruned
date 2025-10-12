@@ -33,9 +33,9 @@ public class WorldUploader {
             if (Config.debug) PrunedMod.LOGGER.info("Can't upload: Pruned is not active on this world.");
             return;
         }
+        addResourcePack(server);
         addNonRegionFiles(server, server.getSavePath(WorldSavePath.ROOT));
         PrunedData.getServerState(server).getFiles().forEach((filePath, sha1) -> uploadFile(server, filePath));
-        addResourcePack(server);
     }
 
     private static void addResourcePack(MinecraftServer server) {
@@ -46,16 +46,14 @@ public class WorldUploader {
                 try {
                     Path worldSavePath = server.getSavePath(WorldSavePath.ROOT);
                     Path downloadedPath = worldSavePath.resolve("resourcepack.zip");
-                    URL url = URI.create(properties.url()).toURL();
+                    URL url = URI.create(properties.url()).normalize().toURL();
                     try (var in = url.openStream()) {
                         Files.copy(in, downloadedPath, StandardCopyOption.REPLACE_EXISTING);
                     }
-                    uploadFile(server, downloadedPath);
+                    PrunedData.getServerState(server).addFile(downloadedPath);
                 } catch (Exception e) {
                     PrunedMod.LOGGER.error("Failed to download resource pack: {}", e.getMessage());
                 }
-            } else {
-                PrunedMod.LOGGER.info("Skipping up to date server resource pack");
             }
         });
     }
@@ -66,7 +64,7 @@ public class WorldUploader {
                 if (Files.isDirectory(entry)) {
                     addNonRegionFiles(server, entry);
                 } else if (Files.isRegularFile(entry) && !IgnoreList.isIgnored(entry)) {
-                    PrunedData.getServerState(server).updateFile(entry);
+                    PrunedData.getServerState(server).addFile(entry);
                 }
             }
         } catch (IOException e) {
@@ -96,7 +94,6 @@ public class WorldUploader {
                 if (Config.debug) PrunedMod.LOGGER.info("Uploaded {}", relativePath);
             } catch (Exception e) {
                 PrunedMod.LOGGER.error(e.getMessage());
-                PrunedData.getServerState(server).updateSha1(path, "");
             }
         });
     }
