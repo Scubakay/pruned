@@ -28,9 +28,10 @@ public class WebDAVStorage {
     final URI webDavEndpoint;
     private final URI worldSaveURL;
 
-    private static final ConcurrentMap<URI, Boolean> createdFolders = new ConcurrentHashMap<>();
+    private final ConcurrentMap<URI, Boolean> createdFolders;
 
     private WebDAVStorage(MinecraftServer server) {
+        createdFolders = new ConcurrentHashMap<>();
         webDavEndpoint = URI.create(Config.webDavEndpoint);
         worldSaveURL = getWorldSaveUri(server);
 
@@ -81,7 +82,7 @@ public class WebDAVStorage {
             hostUrl = resolveHostUrl(relativePath);
 
             final URI parentUri = getParentUri(hostUrl);
-            if (parentUri != null) {
+            if (!sardine.exists(hostUrl.toString()) && parentUri != null) {
                 getOrCreateFolder(parentUri);
             }
 
@@ -122,10 +123,8 @@ public class WebDAVStorage {
             throw new CreateFolderException(String.format("Tried to create folder within WebDAV endpoint %s", uri));
         }
         try {
-            if (!folderExists(uri)) {
-                sardine.createDirectory(uri.toString());
-                if (Config.debug) PrunedMod.LOGGER.info("Created folder {}", uri);
-            }
+            sardine.createDirectory(uri.toString());
+            if (Config.debug) PrunedMod.LOGGER.info("Created folder {}", uri);
         } catch (IOException e) {
             String message = e.getMessage();
             if (message.contains("409")) {
@@ -135,22 +134,11 @@ public class WebDAVStorage {
             } else if (message.contains("404")) {
                 throw new CreateFolderException(String.format("Parent folder not found for %s: %s", uri, message));
             } else if (message.contains("405")) {
-                throw new CreateFolderException(String.format("Folder %s method not allowed (405): %s", uri, message));
+                if (Config.debug) PrunedMod.LOGGER.info("Folder already exists: {}", uri);
             } else {
                 throw new CreateFolderException(String.format("Failed to create folder %s: %s", uri, message));
             }
         }
-    }
-
-    private boolean folderExists(URI uri) throws CreateFolderException {
-        if (uri.equals(webDavEndpoint)) return true; // Assume endpoint always exists
-        final boolean exists;
-        try {
-            exists = sardine.exists(uri.toString());
-        } catch (IOException e) {
-            throw new CreateFolderException(String.format("Could not determine if %s exists: %s", uri, e.getMessage()));
-        }
-        return exists;
     }
     //endregion
     //region URI building
@@ -175,7 +163,7 @@ public class WebDAVStorage {
     private @NotNull URI getWorldSaveUri(MinecraftServer server) {
         return webDavEndpoint
                 .resolve(Config.uploadFolder + "/")
-                .resolve(getWorldName(server) + "/");
+                .resolve(getWorldName(server));
     }
 
     private @NotNull String getWorldName(MinecraftServer server) {
