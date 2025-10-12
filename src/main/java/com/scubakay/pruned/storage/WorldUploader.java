@@ -9,9 +9,12 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.WorldSavePath;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -20,6 +23,11 @@ public class WorldUploader {
     private static final ExecutorService uploadExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     private static final ExecutorService removeExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
+    public static void shutdown(MinecraftServer ignoredServer) {
+        uploadExecutor.shutdown();
+        removeExecutor.shutdown();
+    }
+
     public static void upload(MinecraftServer server) {
         if (!PrunedData.getServerState(server).isActive()) {
             if (Config.debug) PrunedMod.LOGGER.info("Can't upload: Pruned is not active on this world.");
@@ -27,6 +35,29 @@ public class WorldUploader {
         }
         addNonRegionFiles(server, server.getSavePath(WorldSavePath.ROOT));
         PrunedData.getServerState(server).getFiles().forEach((filePath, sha1) -> uploadFile(server, filePath));
+        addResourcePack(server);
+    }
+
+    private static void addResourcePack(MinecraftServer server) {
+        server.getResourcePackProperties().ifPresent(properties -> {
+            PrunedData data = PrunedData.getServerState(server);
+            if (!data.getResourcePackHash().equals(properties.hash())) {
+                data.setResourcePackHash(properties.hash());
+                try {
+                    Path worldSavePath = server.getSavePath(WorldSavePath.ROOT);
+                    Path downloadedPath = worldSavePath.resolve("resourcepack.zip");
+                    URL url = URI.create(properties.url()).toURL();
+                    try (var in = url.openStream()) {
+                        Files.copy(in, downloadedPath, StandardCopyOption.REPLACE_EXISTING);
+                    }
+                    uploadFile(server, downloadedPath);
+                } catch (Exception e) {
+                    PrunedMod.LOGGER.error("Failed to download resource pack: {}", e.getMessage());
+                }
+            } else {
+                PrunedMod.LOGGER.info("Skipping up to date server resource pack");
+            }
+        });
     }
 
     private static void addNonRegionFiles(MinecraftServer server, Path currentPath) {

@@ -161,9 +161,11 @@ public class WebDAVStorage {
     }
 
     private @NotNull URI getWorldSaveUri(MinecraftServer server) {
+        final String worldName = getWorldName(server);
         return webDavEndpoint
                 .resolve(Config.uploadFolder + "/")
-                .resolve(getWorldName(server));
+                .resolve(worldName + "/")
+                .resolve(worldName);
     }
 
     private @NotNull String getWorldName(MinecraftServer server) {
