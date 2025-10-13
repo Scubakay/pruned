@@ -42,7 +42,7 @@ public class SaveCommand {
         RegionPos pos = RegionPos.from(player.getChunkPos());
         addRegionToPrunedData(source, pos);
         ((PrunedServerPlayerEntity) player).pruned$loadPrunedStatus(player, pos);
-        source.getSource().sendFeedback(() -> Text.literal(String.format("Added current region (%s) to Pruned world download", pos)), false);
+        source.getSource().sendFeedback(() -> Text.literal(String.format("Adding current region (%s) to Pruned world download", pos)), false);
         return 1;
     }
 
@@ -55,7 +55,7 @@ public class SaveCommand {
         RegionPos pos = RegionPos.from(player.getChunkPos());
         removeRegionFromPrunedData(source, pos);
         ((PrunedServerPlayerEntity) player).pruned$loadPrunedStatus(player, pos);
-        source.getSource().sendFeedback(() -> Text.literal(String.format("Removed current region (%s) from Pruned world download", pos)), false);
+        source.getSource().sendFeedback(() -> Text.literal(String.format("Removing current region (%s) from Pruned world download", pos)), false);
         return 1;
     }
 

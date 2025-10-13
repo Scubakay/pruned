@@ -3,7 +3,8 @@ package com.scubakay.pruned.storage;
 import com.scubakay.pruned.PrunedMod;
 import com.scubakay.pruned.config.Config;
 import com.scubakay.pruned.data.PrunedData;
-import com.scubakay.pruned.util.FileHasher;
+import com.scubakay.pruned.storage.webdav.task.RemoveFileTask;
+import com.scubakay.pruned.storage.webdav.task.UploadFileTask;
 import com.scubakay.pruned.util.IgnoreList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.WorldSavePath;
@@ -19,14 +20,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class WorldUploader {
-    // Single-threaded executor for uploads (can be changed to multithreaded if needed)
-    private static final ExecutorService uploadExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-    private static final ExecutorService removeExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-
-    public static void shutdown(MinecraftServer ignoredServer) {
-        uploadExecutor.shutdown();
-        removeExecutor.shutdown();
-    }
+//    static ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+//
+//    public static void shutdown(MinecraftServer ignoredServer) {
+//        executor.shutdown();
+//    }
 
     public static void upload(MinecraftServer server) {
         if (!PrunedData.getServerState(server).isActive()) {
@@ -35,7 +33,10 @@ public class WorldUploader {
         }
         addResourcePack(server);
         addNonRegionFiles(server, server.getSavePath(WorldSavePath.ROOT));
-        PrunedData.getServerState(server).getFiles().forEach((filePath, sha1) -> uploadFile(server, filePath));
+
+        PrunedData.getServerState(server).getFiles().forEach((path, sha1) -> {
+            uploadFile(server, path);
+        });
     }
 
     private static void addResourcePack(MinecraftServer server) {
@@ -73,47 +74,16 @@ public class WorldUploader {
     }
 
     public static void uploadFile(MinecraftServer server, Path path) {
-        if (!WebDAVStorage.isConnected()) {
-            PrunedMod.LOGGER.error("Uploading file failed: Not connected to WebDAV server");
-            return;
+        // TODO: Properly shutdown executors
+        try (ExecutorService es = Executors.newVirtualThreadPerTaskExecutor()) {
+            es.submit(new UploadFileTask(server, path));
         }
-
-        String sha1 = PrunedData.getServerState(server).getSha1(path);
-        String newSha1 = FileHasher.getSha1(path);
-        if (newSha1.equals(sha1)) {
-            if (Config.debug) PrunedMod.LOGGER.info("Skipping up to date file: {}", path);
-            return;
-        }
-
-        Path savePath = server.getSavePath(WorldSavePath.ROOT);
-        Path relativePath = savePath.getParent().getParent().relativize(path);
-        uploadExecutor.submit(() -> {
-            try {
-                WebDAVStorage.getInstance().uploadFile(path, relativePath);
-                PrunedData.getServerState(server).updateSha1(path, newSha1);
-                if (Config.debug) PrunedMod.LOGGER.info("Uploaded {}", relativePath);
-            } catch (Exception e) {
-                PrunedMod.LOGGER.error(e.getMessage());
-            }
-        });
     }
 
     public static void removeFile(MinecraftServer server, Path path) {
-        if (!WebDAVStorage.isConnected()) {
-            PrunedMod.LOGGER.error("Removing file failed: Not connected to WebDAV server");
-            return;
+        // TODO: Properly shutdown executors
+        try (ExecutorService es = Executors.newVirtualThreadPerTaskExecutor()) {
+            es.submit(new RemoveFileTask(server, path));
         }
-
-        Path savePath = server.getSavePath(WorldSavePath.ROOT);
-        Path relativePath = savePath.getParent().getParent().relativize(path);
-        removeExecutor.submit(() -> {
-            try {
-                WebDAVStorage.getInstance().removeWorldFile(relativePath);
-                PrunedData.getServerState(server).removeFile(path);
-                if (Config.debug) PrunedMod.LOGGER.info("Removed {}", relativePath);
-            } catch (Exception e) {
-                PrunedMod.LOGGER.error("Failed to remove {}: {}", relativePath, e.getMessage());
-            }
-        });
     }
 }

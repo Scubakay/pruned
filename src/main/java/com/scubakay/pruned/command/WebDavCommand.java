@@ -9,7 +9,7 @@ import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.scubakay.pruned.PrunedMod;
 import com.scubakay.pruned.config.Config;
-import com.scubakay.pruned.storage.WebDAVStorage;
+import com.scubakay.pruned.storage.webdav.WebDAVStorage;
 import com.scubakay.pruned.util.DynamicDialogs;
 import com.scubakay.pruned.util.MachineIdentifier;
 import com.scubakay.pruned.util.PasswordEncryptor;

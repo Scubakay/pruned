@@ -4,7 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.scubakay.pruned.data.PrunedData;
-import com.scubakay.pruned.storage.WebDAVStorage;
+import com.scubakay.pruned.storage.webdav.WebDAVStorage;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;

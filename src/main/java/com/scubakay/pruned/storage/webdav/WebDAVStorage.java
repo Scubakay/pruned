@@ -1,4 +1,4 @@
-package com.scubakay.pruned.storage;
+package com.scubakay.pruned.storage.webdav;
 
 import com.github.sardine.Sardine;
 import com.github.sardine.SardineFactory;
@@ -27,13 +27,16 @@ public class WebDAVStorage {
 
     final URI webDavEndpoint;
     private final URI worldSaveURL;
+    private final Path worldSavePath;
 
     private final ConcurrentMap<URI, Boolean> createdFolders;
+
 
     private WebDAVStorage(MinecraftServer server) {
         createdFolders = new ConcurrentHashMap<>();
         webDavEndpoint = URI.create(Config.webDavEndpoint);
         worldSaveURL = getWorldSaveUri(server);
+        worldSavePath = server.getSavePath(WorldSavePath.ROOT);
 
         String machineId = MachineIdentifier.getMachineId();
         String decryptedPassword = PasswordEncryptor.decrypt(Config.webDavPassword, machineId);
@@ -76,10 +79,10 @@ public class WebDAVStorage {
     //endregion
     //region WebDAV calls
 
-    public void uploadFile(Path filepath, Path relativePath) throws UploadException, CreateFolderException {
+    public void uploadFile(Path filepath) throws UploadException, CreateFolderException {
         URI hostUrl = null;
         try {
-            hostUrl = resolveHostUrl(relativePath);
+            hostUrl = resolveHostUrl(filepath);
 
             final URI parentUri = getParentUri(hostUrl);
             if (!sardine.exists(hostUrl.toString()) && parentUri != null) {
@@ -89,17 +92,17 @@ public class WebDAVStorage {
             byte[] fileBytes = Files.readAllBytes(filepath.normalize());
             sardine.put(hostUrl.toString(), fileBytes);
         } catch (IOException e) {
-            throw new UploadException(String.format("Failed to upload %s to %s: %s", relativePath, hostUrl, e.getMessage()));
+            throw new UploadException(String.format("Failed to upload %s: %s", hostUrl, e.getMessage()));
         }
     }
 
-    public void removeWorldFile(Path relativePath) throws RemoveException {
+    public void removeWorldFile(Path path) throws RemoveException {
         URI hostUrl = null;
         try {
-            hostUrl = resolveHostUrl(relativePath);
+            hostUrl = resolveHostUrl(path);
             sardine.delete(hostUrl.toString());
         } catch (Exception e) {
-            throw new RemoveException(String.format("Failed to remove %s from %s: %s", relativePath, hostUrl, e.getMessage()));
+            throw new RemoveException(String.format("Failed to remove %s from %s: %s", path, hostUrl, e.getMessage()));
         }
     }
 
@@ -143,7 +146,8 @@ public class WebDAVStorage {
     //endregion
     //region URI building
 
-    private URI resolveHostUrl(Path relativePath) throws IllegalArgumentException {
+    private URI resolveHostUrl(Path path) throws IllegalArgumentException {
+        Path relativePath = worldSavePath.getParent().getParent().relativize(path);
         String uriPath = relativePath.toString().replace("\\", "/");
         return worldSaveURL.resolve(uriPath);
     }
