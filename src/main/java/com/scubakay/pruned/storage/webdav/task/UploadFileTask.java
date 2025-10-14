@@ -20,6 +20,7 @@ public class UploadFileTask implements Runnable {
 
     @Override
     public void run() {
+        if (Config.debug) PrunedMod.LOGGER.info("UploadFileTask started for {}", path);
         if (!WebDAVStorage.isConnected()) {
             PrunedMod.LOGGER.error("Uploading file failed: Not connected to WebDAV server");
             return;
@@ -37,7 +38,7 @@ public class UploadFileTask implements Runnable {
             PrunedData.getServerState(server).updateSha1(path, newSha1);
             if (Config.debug) PrunedMod.LOGGER.info("Uploaded {}", path);
         } catch (Exception e) {
-            PrunedMod.LOGGER.error(e.getMessage());
+            PrunedMod.LOGGER.error("Uploading {} failed: {}", path, e.getMessage());
         }
     }
 }

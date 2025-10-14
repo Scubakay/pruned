@@ -40,4 +40,7 @@ public class Config extends MidnightConfig {
 
     @Entry()
     public static String uploadFolder = "Pruned";
+
+    @Entry()
+    public static int maxConcurrentUploads = 4;
 }

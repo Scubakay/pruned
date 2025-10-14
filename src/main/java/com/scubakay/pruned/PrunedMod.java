@@ -2,6 +2,7 @@ package com.scubakay.pruned;
 
 import com.scubakay.pruned.command.PrunedCommand;
 import com.scubakay.pruned.config.Config;
+import com.scubakay.pruned.storage.WorldUploader;
 import com.scubakay.pruned.storage.webdav.WebDAVStorage;
 import dev.kikugie.fletching_table.annotation.fabric.Entrypoint;
 import eu.midnightdust.lib.config.MidnightConfig;
@@ -22,7 +23,8 @@ public class PrunedMod implements ModInitializer {
         MidnightConfig.init(MOD_ID, Config.class);
         CommandRegistrationCallback.EVENT.register(PrunedCommand::register);
         ServerLifecycleEvents.SERVER_STARTED.register(WebDAVStorage::connect);
-//        ServerLifecycleEvents.SERVER_STOPPING.register(WorldUploader::shutdown);
+        ServerLifecycleEvents.SERVER_STARTED.register(WorldUploader::initialize);
+        ServerLifecycleEvents.SERVER_STOPPING.register(WorldUploader::shutdown);
         ServerLifecycleEvents.SERVER_STOPPING.register(WebDAVStorage::disconnect);
     }
 }

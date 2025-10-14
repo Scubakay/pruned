@@ -16,27 +16,41 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class WorldUploader {
-//    static ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-//
-//    public static void shutdown(MinecraftServer ignoredServer) {
-//        executor.shutdown();
-//    }
+    private static ExecutorService executor;
+    private static final AtomicBoolean initialized = new AtomicBoolean(false);
+
+    public static void initialize(MinecraftServer ignoredServer) {
+        if (Config.debug) PrunedMod.LOGGER.info("Initializing World upload executor");
+        if (initialized.compareAndSet(false, true)) {
+            executor = Executors.newFixedThreadPool(Config.maxConcurrentUploads);
+        }
+    }
+
+    public static void shutdown(MinecraftServer ignoredServer) {
+        if (Config.debug) PrunedMod.LOGGER.info("Shutting down World upload executor");
+        if (executor != null) {
+            executor.shutdown();
+            initialized.set(false);
+        }
+    }
 
     public static void upload(MinecraftServer server) {
         if (!PrunedData.getServerState(server).isActive()) {
-            if (Config.debug) PrunedMod.LOGGER.info("Can't upload: Pruned is not active on this world.");
+            PrunedMod.LOGGER.error("Can't upload: Pruned is not active on this world.");
             return;
         }
         addResourcePack(server);
         addNonRegionFiles(server, server.getSavePath(WorldSavePath.ROOT));
 
-        PrunedData.getServerState(server).getFiles().forEach((path, sha1) -> {
-            uploadFile(server, path);
-        });
+        final Map<Path, String> files = PrunedData.getServerState(server).getFiles();
+        files.forEach((path, sha1) -> uploadFile(server, path));
+        if (Config.debug) PrunedMod.LOGGER.info("Scheduled {} files for upload", files.size());
     }
 
     private static void addResourcePack(MinecraftServer server) {
@@ -74,16 +88,28 @@ public class WorldUploader {
     }
 
     public static void uploadFile(MinecraftServer server, Path path) {
-        // TODO: Properly shutdown executors
-        try (ExecutorService es = Executors.newVirtualThreadPerTaskExecutor()) {
-            es.submit(new UploadFileTask(server, path));
+        if (executor == null) {
+            if (Config.debug) PrunedMod.LOGGER.error("ExecutorService is not initialized! Cannot schedule upload for {}", path);
+            return;
+        }
+        try {
+            executor.submit(new UploadFileTask(server, path));
+            if (Config.debug) PrunedMod.LOGGER.info("Scheduled upload for {}", path);
+        } catch (Exception e) {
+            if (Config.debug) PrunedMod.LOGGER.error("Failed to schedule upload for {}: {}", path, e.getMessage());
         }
     }
 
     public static void removeFile(MinecraftServer server, Path path) {
-        // TODO: Properly shutdown executors
-        try (ExecutorService es = Executors.newVirtualThreadPerTaskExecutor()) {
-            es.submit(new RemoveFileTask(server, path));
+        if (executor == null) {
+            if (Config.debug) PrunedMod.LOGGER.error("ExecutorService is not initialized! Cannot schedule removal for {}", path);
+            return;
+        }
+        try {
+            executor.submit(new RemoveFileTask(server, path));
+            if (Config.debug) PrunedMod.LOGGER.info("Scheduled removal for {}", path);
+        } catch (Exception e) {
+            if (Config.debug) PrunedMod.LOGGER.error("Failed to schedule removal for {}: {}", path, e.getMessage());
         }
     }
 }

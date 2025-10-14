@@ -19,6 +19,7 @@ public class RemoveFileTask implements Runnable {
 
     @Override
     public void run() {
+        if (Config.debug) PrunedMod.LOGGER.info("RemoveFileTask started for {}", path);
         if (!WebDAVStorage.isConnected()) {
             PrunedMod.LOGGER.error("Removing file failed: Not connected to WebDAV server");
             return;
@@ -29,7 +30,7 @@ public class RemoveFileTask implements Runnable {
             PrunedData.getServerState(server).removeFile(path);
             if (Config.debug) PrunedMod.LOGGER.info("Removed {}", path);
         } catch (Exception e) {
-            PrunedMod.LOGGER.error(e.getMessage());
+            PrunedMod.LOGGER.error("Removing {} failed: {}", path, e.getMessage());
         }
     }
 }
