@@ -40,6 +40,14 @@ public class WorldUploader {
         }
     }
 
+    public static void forceShutdown(MinecraftServer ignoredServer) {
+        if (Config.debug) PrunedMod.LOGGER.info("Forcing shutdown of World upload executor");
+        if (executor != null) {
+            executor.shutdownNow();
+            initialized.set(false);
+        }
+    }
+
     public static void upload(MinecraftServer server) {
         if (!PrunedData.getServerState(server).isActive()) {
             PrunedMod.LOGGER.error("Can't upload: Pruned is not active on this world.");

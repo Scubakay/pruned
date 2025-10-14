@@ -43,4 +43,10 @@ public class Config extends MidnightConfig {
 
     @Entry()
     public static int maxConcurrentUploads = 4;
+
+    @Entry()
+    public static boolean uploadOnServerStop = false;
+
+    @Entry()
+    public static boolean stopUploadOnServerStop = true;
 }
