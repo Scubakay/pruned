@@ -6,10 +6,18 @@ import eu.midnightdust.lib.config.MidnightConfig;
 import java.util.List;
 
 public class Config extends MidnightConfig {
-    // Inhabited time in minutes needed before chunk gets added to world download
-    @Entry()
-    public static int inhabitedTime = 60;
-    @Entry()
+    @Entry() public static UploadStrategy uploadStrategy = UploadStrategy.MANUAL;
+    @Entry() public static int uploadInterval = 15; // In minutes
+    @Entry() public static boolean stopUploadOnServerStop = true;
+
+    @Entry() public static boolean autoAddInhabitedChunks = true;
+    @Entry() public static int inhabitedTime = 60;
+
+    @Entry() public static String uploadFolder = "Pruned";
+    @Entry() public static int maxConcurrentUploads = 4;
+    @Entry() public static boolean debug = false;
+
+    @Hidden @Entry()
     public static List<String> ignored = Lists.newArrayList(
             "pruned.dat",
             ".mca",
@@ -17,36 +25,15 @@ public class Config extends MidnightConfig {
             ".dat_old",
             ".lock"
     );
-    @Entry()
-    public static boolean debug = false;
 
-    // Automatically add chunks to the world download when the inhabited time increases to inhabitedTime
-    @Entry()
-    public static boolean autoAddInhabitedChunks = true;
+    @Hidden @Entry() public static int permissionLevel = 4;
+    @Hidden @Entry() public static String webDavEndpoint;
+    @Hidden @Entry() public static String webDavUsername;
+    @Hidden @Entry() public static String webDavPassword;
 
-    @Hidden
-    @Entry()
-    public static String webDavEndpoint;
-    @Hidden
-    @Entry()
-    public static String webDavUsername;
-    @Hidden
-    @Entry()
-    public static String webDavPassword;
-
-    @Hidden
-    @Entry()
-    public static int permissionLevel = 4;
-
-    @Entry()
-    public static String uploadFolder = "Pruned";
-
-    @Entry()
-    public static int maxConcurrentUploads = 4;
-
-    @Entry()
-    public static boolean uploadOnServerStop = false;
-
-    @Entry()
-    public static boolean stopUploadOnServerStop = true;
+    public enum UploadStrategy {
+        INTERVAL,
+        SERVER_STOP,
+        MANUAL
+    }
 }

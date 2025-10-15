@@ -19,33 +19,67 @@ import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class WorldUploader {
     private static ExecutorService executor;
+    private static ScheduledExecutorService intervalScheduler;
     private static final AtomicBoolean initialized = new AtomicBoolean(false);
 
-    public static void initialize(MinecraftServer ignoredServer) {
+    public static void initialize(MinecraftServer server) {
         if (Config.debug) PrunedMod.LOGGER.info("Initializing World upload executor");
+        if (executor != null) {
+            executor.shutdownNow();
+        }
         if (initialized.compareAndSet(false, true)) {
             executor = Executors.newFixedThreadPool(Config.maxConcurrentUploads);
         }
+        if (Config.uploadStrategy == Config.UploadStrategy.INTERVAL) {
+            uploadOnInterval(server);
+        }
     }
 
-    public static void shutdown(MinecraftServer ignoredServer) {
+    public static void shutdown(MinecraftServer server) {
+        if (Config.uploadStrategy == Config.UploadStrategy.SERVER_STOP) {
+            upload(server);
+        }
+
         if (Config.debug) PrunedMod.LOGGER.info("Shutting down World upload executor");
         if (executor != null) {
-            executor.shutdown();
+            if (Config.uploadStrategy != Config.UploadStrategy.SERVER_STOP && Config.stopUploadOnServerStop) {
+                executor.shutdownNow();
+            } else {
+                executor.shutdown();
+            }
             initialized.set(false);
+        }
+
+        if (intervalScheduler != null) {
+            if (Config.uploadStrategy != Config.UploadStrategy.SERVER_STOP && Config.stopUploadOnServerStop) {
+                intervalScheduler.shutdownNow();
+            } else {
+                intervalScheduler.shutdown();
+            }
+            intervalScheduler = null;
         }
     }
 
-    public static void forceShutdown(MinecraftServer ignoredServer) {
-        if (Config.debug) PrunedMod.LOGGER.info("Forcing shutdown of World upload executor");
-        if (executor != null) {
-            executor.shutdownNow();
-            initialized.set(false);
+    public static void uploadOnInterval(MinecraftServer server) {
+        if (intervalScheduler != null && !intervalScheduler.isShutdown()) {
+            if (Config.debug) PrunedMod.LOGGER.error("Interval upload scheduler already running");
+            return;
         }
+        if (Config.debug) PrunedMod.LOGGER.info("Uploading world every {} minutes", Config.uploadInterval);
+        intervalScheduler = Executors.newSingleThreadScheduledExecutor();
+        intervalScheduler.scheduleAtFixedRate(() -> {
+            try {
+                upload(server);
+            } catch (Exception e) {
+                PrunedMod.LOGGER.error("Error during interval upload: {}", e.getMessage());
+            }
+        }, Config.uploadInterval, Config.uploadInterval, TimeUnit.MINUTES);
     }
 
     public static void upload(MinecraftServer server) {

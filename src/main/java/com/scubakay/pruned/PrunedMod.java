@@ -24,14 +24,7 @@ public class PrunedMod implements ModInitializer {
         CommandRegistrationCallback.EVENT.register(PrunedCommand::register);
         ServerLifecycleEvents.SERVER_STARTED.register(WebDAVStorage::connect);
         ServerLifecycleEvents.SERVER_STARTED.register(WorldUploader::initialize);
-        if (Config.stopUploadOnServerStop) {
-            ServerLifecycleEvents.SERVER_STOPPING.register(WorldUploader::forceShutdown);
-        } else {
-            if (Config.uploadOnServerStop) {
-                ServerLifecycleEvents.SERVER_STOPPING.register(WorldUploader::upload);
-            }
-            ServerLifecycleEvents.SERVER_STOPPED.register(WorldUploader::shutdown);
-        }
+        ServerLifecycleEvents.SERVER_STOPPING.register(WorldUploader::shutdown);
         ServerLifecycleEvents.SERVER_STOPPING.register(WebDAVStorage::disconnect);
     }
 }

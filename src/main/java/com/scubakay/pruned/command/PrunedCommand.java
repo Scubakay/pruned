@@ -87,7 +87,7 @@ public class PrunedCommand {
         }
     }
 
-    private static void openActivateDialog(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+    private static void openActivateDialog(CommandContext<ServerCommandSource> context) {
         try {
             JsonObject dialogObj = DynamicDialogs.getDialogJson("activate");
             Map<String, String> replacements = new HashMap<>();
@@ -98,7 +98,7 @@ public class PrunedCommand {
             String finalDialogJson = DynamicDialogs.parseDialogJson(dialogObj, replacements);
             String command = String.format("dialog show @s %s", finalDialogJson);
             context.getSource().getDispatcher().execute(command, context.getSource());
-        } catch (NullPointerException | IOException e) {
+        } catch (Exception e) {
             context.getSource().sendError(Text.literal("Failed to load dialog: " + e.getMessage()));
         }
     }
