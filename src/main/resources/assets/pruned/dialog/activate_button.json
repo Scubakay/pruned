@@ -1,8 +1,0 @@
-{
-  "label": "Activate",
-  "tooltip": "Share this world with Pruned",
-  "action": {
-    "type": "minecraft:run_command",
-    "command": "pruned activate"
-  }
-}

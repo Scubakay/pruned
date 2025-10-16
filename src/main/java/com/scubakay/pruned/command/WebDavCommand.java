@@ -1,6 +1,5 @@
 package com.scubakay.pruned.command;
 
-import com.google.gson.JsonObject;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -9,8 +8,8 @@ import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.scubakay.pruned.PrunedMod;
 import com.scubakay.pruned.config.Config;
+import com.scubakay.pruned.dialog.DynamicDialog;
 import com.scubakay.pruned.storage.webdav.WebDAVStorage;
-import com.scubakay.pruned.util.DynamicDialogs;
 import com.scubakay.pruned.util.MachineIdentifier;
 import com.scubakay.pruned.util.PasswordEncryptor;
 import eu.midnightdust.lib.config.MidnightConfig;
@@ -20,7 +19,6 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
 import static com.scubakay.pruned.command.PermissionManager.CONFIGURE_PERMISSION;
@@ -47,14 +45,10 @@ public class WebDavCommand {
 
     private static int openWebDavConfigDialog(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
         try {
-            Map<String, String> replacements = new HashMap<>();
-            replacements.put("%ENDPOINT%", Config.webDavEndpoint != null ? Config.webDavEndpoint : "");
-            replacements.put("%USERNAME%", Config.webDavUsername != null ? Config.webDavUsername : "");
-
-            JsonObject dialogObj = DynamicDialogs.getDialogJson("webdav_config");
-            String dialogJson = DynamicDialogs.parseDialogJson(dialogObj, replacements);
-            String command = String.format("dialog show @s %s", dialogJson);
-            context.getSource().getDispatcher().execute(command, context.getSource());
+            DynamicDialog.create("webdav_config").show(context, Map.of(
+                "%ENDPOINT%", Config.webDavEndpoint != null ? Config.webDavEndpoint : "",
+                "%USERNAME%", Config.webDavUsername != null ? Config.webDavUsername : ""
+            ));
             return 1;
         } catch (IOException e) {
             context.getSource().sendError(Text.literal("Failed to load dialog: " + e.getMessage()));

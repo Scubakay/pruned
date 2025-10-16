@@ -1,25 +1,19 @@
 package com.scubakay.pruned.command;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.tree.CommandNode;
 import com.scubakay.pruned.data.PrunedData;
+import com.scubakay.pruned.dialog.DynamicDialog;
 import com.scubakay.pruned.domain.PrunedServerPlayerEntity;
-import com.scubakay.pruned.util.DynamicDialogs;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 public class PrunedCommand {
@@ -46,7 +40,6 @@ public class PrunedCommand {
 
     private static int openPrunedDialog(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
         try {
-            Map<String, String> replacements = new HashMap<>();
             PrunedServerPlayerEntity player = (PrunedServerPlayerEntity) context.getSource().getPlayer();
             if (player == null) {
                 context.getSource().sendError(Text.literal("This command is only client side only"));
@@ -54,29 +47,30 @@ public class PrunedCommand {
             }
 
             if (!PrunedData.getServerState(context.getSource().getServer()).isActive()) {
-                openActivateDialog(context);
+                if (PermissionManager.hasPermission(context.getSource(), PermissionManager.CONFIGURE_PERMISSION)) {
+                    DynamicDialog.create("activate").show(context);
+                } else {
+                    context.getSource().sendError(Text.literal("Pruned: Insufficient permissions"));
+                }
             } else {
-                replacements.put("%REGION_IN_WORLD_DOWNLOAD%", player.pruned$isRegionSaved() ? "Yes" : "No");
-                replacements.put("%REGION_IN_WORLD_DOWNLOAD_COLOR%", player.pruned$isRegionSaved() ? "green" : "yellow");
-                replacements.put("%ADD_OR_REMOVE%", player.pruned$isRegionSaved() ? "Remove" : "Add");
-                replacements.put("%ADD_OR_REMOVE_COLOR%", player.pruned$isRegionSaved() ? "red" : "green");
-                replacements.put("%ADD_OR_REMOVE_TOOLTIP%", player.pruned$isRegionSaved() ? "Remove the current region from the world download" : "Add the current region to the world download");
-                replacements.put("%PRUNED_SAVE_OR_REMOVE_COMMAND%", player.pruned$isRegionSaved() ? "pruned remove" : "pruned save");
-                replacements.put("%ENABLE_DISABLE_HELPER%", player.pruned$isRegionHelperEnabled() ? "Disable Helper" : "Enable Helper");
-                replacements.put("%ENABLE_DISABLE_HELPER_COLOR%", player.pruned$isRegionHelperEnabled() ? "red" : "green");
-
-                JsonObject dialogObj = DynamicDialogs.getDialogJson("pruned");
-
+                DynamicDialog dialogObj = DynamicDialog.create("pruned");
                 if (PermissionManager.hasPermission(context.getSource(), PermissionManager.TRIGGER_UPLOAD_PERMISSION)) {
-                    addDialogAction("upload_button", dialogObj);
+                    dialogObj.addDialogAction("upload_button");
                 }
                 if (PermissionManager.hasPermission(context.getSource(), PermissionManager.CONFIGURE_PERMISSION)) {
-                    addDialogAction("webdav_config_button", dialogObj);
+                    dialogObj.addDialogAction("webdav_config_button");
                 }
 
-                String finalDialogJson = DynamicDialogs.parseDialogJson(dialogObj, replacements);
-                String command = String.format("dialog show @s %s", finalDialogJson);
-                context.getSource().getDispatcher().execute(command, context.getSource());
+                dialogObj.show(context, Map.of(
+                    "%REGION_IN_WORLD_DOWNLOAD%", player.pruned$isRegionSaved() ? "Yes" : "No",
+                    "%REGION_IN_WORLD_DOWNLOAD_COLOR%", player.pruned$isRegionSaved() ? "green" : "yellow",
+                    "%ADD_OR_REMOVE%", player.pruned$isRegionSaved() ? "Remove" : "Add",
+                    "%ADD_OR_REMOVE_COLOR%", player.pruned$isRegionSaved() ? "red" : "green",
+                    "%ADD_OR_REMOVE_TOOLTIP%", player.pruned$isRegionSaved() ? "Remove the current region from the world download" : "Add the current region to the world download",
+                    "%PRUNED_SAVE_OR_REMOVE_COMMAND%", player.pruned$isRegionSaved() ? "pruned remove" : "pruned save",
+                    "%ENABLE_DISABLE_HELPER%", player.pruned$isRegionHelperEnabled() ? "Disable Helper" : "Enable Helper",
+                    "%ENABLE_DISABLE_HELPER_COLOR%", player.pruned$isRegionHelperEnabled() ? "red" : "green"
+                ));
             }
             return 1;
 
@@ -84,35 +78,6 @@ public class PrunedCommand {
         } catch (NullPointerException | IOException e) {
             context.getSource().sendError(Text.literal("Failed to load dialog: " + e.getMessage()));
             return 0;
-        }
-    }
-
-    private static void openActivateDialog(CommandContext<ServerCommandSource> context) {
-        try {
-            JsonObject dialogObj = DynamicDialogs.getDialogJson("activate");
-            Map<String, String> replacements = new HashMap<>();
-            replacements.put("%CONTACT_ADMIN%", PermissionManager.hasPermission(context.getSource(), PermissionManager.CONFIGURE_PERMISSION) ? "" : "Ask a server admin to activate it.");
-            if (PermissionManager.hasPermission(context.getSource(), PermissionManager.CONFIGURE_PERMISSION)) {
-                addDialogAction("activate_button", dialogObj);
-            }
-            String finalDialogJson = DynamicDialogs.parseDialogJson(dialogObj, replacements);
-            String command = String.format("dialog show @s %s", finalDialogJson);
-            context.getSource().getDispatcher().execute(command, context.getSource());
-        } catch (Exception e) {
-            context.getSource().sendError(Text.literal("Failed to load dialog: " + e.getMessage()));
-        }
-    }
-
-    private static void addDialogAction(String webdavConfigButton, JsonObject dialogObj) {
-        InputStream is = PrunedCommand.class.getClassLoader().getResourceAsStream(
-                "assets/pruned/dialog/" + webdavConfigButton + ".json");
-        if (is != null) {
-            JsonElement webdavButton = new com.google.gson.Gson().fromJson(new InputStreamReader(is), JsonElement.class);
-            JsonArray actions = dialogObj.has("actions") && dialogObj.get("actions").isJsonArray()
-                    ? dialogObj.getAsJsonArray("actions")
-                    : new JsonArray();
-            actions.add(webdavButton);
-            dialogObj.add("actions", actions);
         }
     }
 }
