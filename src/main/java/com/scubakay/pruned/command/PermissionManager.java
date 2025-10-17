@@ -6,6 +6,8 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 
+import java.util.Objects;
+
 public class PermissionManager {
     public static final String ROOT_PERMISSION = "pruned";
 
@@ -19,11 +21,13 @@ public class PermissionManager {
     private static final boolean fabricPermissionsApi = FabricLoader.getInstance().isModLoaded("fabric-permissions-api-v0");
 
     public static boolean hasPermission(ServerPlayerEntity player, String permission) {
+        if (Objects.requireNonNull(player.getServer()).isSingleplayer()) return true;
         if (player.hasPermissionLevel(Config.permissionLevel)) return true;
         return fabricPermissionsApi && Permissions.check(player, permission);
     }
 
     public static boolean hasPermission(ServerCommandSource source, String permission) {
+        if (Objects.requireNonNull(source.getServer()).isSingleplayer()) return true;
         if (source.hasPermissionLevel(Config.permissionLevel)) return true;
         return fabricPermissionsApi && Permissions.check(source, permission);
     }

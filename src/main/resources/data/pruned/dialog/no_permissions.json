@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:notice",
+  "title": "Pruned",
+  "body": [
+    {
+      "type": "minecraft:plain_message",
+      "contents": {
+        "text": "You do not have the correct permissions to access this feature."
+      }
+    }
+  ]
+}

@@ -3,7 +3,6 @@ package com.scubakay.pruned.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.scubakay.pruned.PrunedMod;
@@ -18,8 +17,8 @@ import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 
-import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 
 import static com.scubakay.pruned.command.PermissionManager.CONFIGURE_PERMISSION;
 import static com.scubakay.pruned.command.PermissionManager.hasPermission;
@@ -43,17 +42,12 @@ public class WebDavCommand {
         PrunedCommand.getRoot(dispatcher).addChild(openDialogNode);
     }
 
-    private static int openWebDavConfigDialog(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        try {
-            DynamicDialog.create("webdav_config").show(context, Map.of(
-                "%ENDPOINT%", Config.webDavEndpoint != null ? Config.webDavEndpoint : "",
-                "%USERNAME%", Config.webDavUsername != null ? Config.webDavUsername : ""
-            ));
-            return 1;
-        } catch (IOException e) {
-            context.getSource().sendError(Text.literal("Failed to load dialog: " + e.getMessage()));
-            return 0;
-        }
+    private static int openWebDavConfigDialog(CommandContext<ServerCommandSource> context) {
+        Objects.requireNonNull(DynamicDialog.create("webdav_config")).show(context, Map.of(
+            "%ENDPOINT%", Config.webDavEndpoint != null ? Config.webDavEndpoint : "",
+            "%USERNAME%", Config.webDavUsername != null ? Config.webDavUsername : ""
+        ));
+        return 1;
     }
 
     private static int login(CommandContext<ServerCommandSource> context) {

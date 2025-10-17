@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:confirmation",
+  "title": "Pruned",
+  "body": [
+    {
+      "type": "minecraft:plain_message",
+      "contents": {
+        "text": "Pruned is not active in this world!"
+      }
+    }
+  ],
+  "yes": {
+    "label": "Activate",
+    "tooltip": "Share this world with Pruned",
+    "action": {
+      "type": "minecraft:run_command",
+      "command": "pruned activate"
+    }
+  },
+  "no": {
+    "label": {
+      "translate": "gui.back"
+    }
+  }
+}
