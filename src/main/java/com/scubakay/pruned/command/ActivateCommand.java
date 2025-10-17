@@ -31,14 +31,14 @@ public class ActivateCommand {
     private static int activate(CommandContext<ServerCommandSource> source) {
         PrunedData.getServerState(source.getSource().getServer()).activate();
         WebDAVStorage.connect(source.getSource().getServer());
-        source.getSource().sendFeedback(() -> Text.translatable("pruned.command.activate", source.getSource().getServer().getName()), false);
+        source.getSource().sendFeedback(() -> Text.literal(String.format("Activated Pruned for world %s", source.getSource().getServer().getName())), false);
         return 1;
     }
 
     private static int deactivate(CommandContext<ServerCommandSource> source) {
         PrunedData.getServerState(source.getSource().getServer()).deactivate();
         WebDAVStorage.disconnect(source.getSource().getServer());
-        source.getSource().sendFeedback(() -> Text.translatable("pruned.command.deactivate", source.getSource().getServer().getName()), false);
+        source.getSource().sendFeedback(() -> Text.literal(String.format("Deactivated Pruned for world %s", source.getSource().getServer().getName())), false);
         return 1;
     }
 }
