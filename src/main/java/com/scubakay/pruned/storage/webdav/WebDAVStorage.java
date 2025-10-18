@@ -16,6 +16,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.ConcurrentHashMap;
@@ -85,12 +87,12 @@ public class WebDAVStorage {
             hostUrl = resolveHostUrl(filepath);
 
             final URI parentUri = getParentUri(hostUrl);
-            if (!sardine.exists(hostUrl.toString()) && parentUri != null) {
+            if (!sardine.exists(hostUrl.toASCIIString()) && parentUri != null) {
                 getOrCreateFolder(parentUri);
             }
 
             byte[] fileBytes = Files.readAllBytes(filepath.normalize());
-            sardine.put(hostUrl.toString(), fileBytes);
+            sardine.put(hostUrl.toASCIIString(), fileBytes);
         } catch (IOException e) {
             throw new UploadException(String.format("Failed to upload %s: %s", hostUrl, e.getMessage()));
         }
@@ -100,7 +102,7 @@ public class WebDAVStorage {
         URI hostUrl = null;
         try {
             hostUrl = resolveHostUrl(path);
-            sardine.delete(hostUrl.toString());
+            sardine.delete(hostUrl.toASCIIString());
         } catch (Exception e) {
             throw new RemoveException(String.format("Failed to remove %s from %s: %s", path, hostUrl, e.getMessage()));
         }
@@ -126,7 +128,7 @@ public class WebDAVStorage {
             throw new CreateFolderException(String.format("Tried to create folder within WebDAV endpoint %s", uri));
         }
         try {
-            sardine.createDirectory(uri.toString());
+            sardine.createDirectory(uri.toASCIIString());
             if (Config.debug) PrunedMod.LOGGER.info("Created folder {}", uri);
         } catch (IOException e) {
             String message = e.getMessage();
@@ -148,28 +150,38 @@ public class WebDAVStorage {
 
     private URI resolveHostUrl(Path path) throws IllegalArgumentException {
         Path relativePath = worldSavePath.getParent().getParent().relativize(path);
-        String uriPath = relativePath.toString().replace("\\", "/");
+
+        StringBuilder sb = new StringBuilder();
+        for (Path segment : relativePath) {
+            if (!sb.isEmpty()) sb.append('/');
+            sb.append(encode(segment.toString()));
+        }
+        String uriPath = sb.toString();
+
         return worldSaveURL.resolve(uriPath);
     }
 
     private URI getParentUri(URI uri) {
         if (uri.equals(webDavEndpoint)) return null; // Don't go above endpoint
-        String path = uri.getPath();
-        int lastSlash = path.lastIndexOf('/');
-        if (lastSlash <= 0) return null;
-        String parentPath = path.substring(0, lastSlash);
-        URI parent = URI.create(uri.getScheme() + "://" + uri.getHost() + parentPath);
-        // If parent is the same as endpoint or part of it, return null
-        if (webDavEndpoint.toString().contains(parent.toString())) return null;
+
+        String ascii = uri.toASCIIString();
+        String withSlash = ascii.endsWith("/") ? ascii : ascii + "/";
+
+        // Resolve '..' against a guaranteed directory-like URI and normalize to collapse the '..'
+        URI parent = URI.create(withSlash).resolve("..").normalize();
+
+        // If parent is at-or-above the endpoint, return null
+        if (webDavEndpoint.toASCIIString().contains(parent.toASCIIString())) return null;
+
         return parent;
     }
 
     private @NotNull URI getWorldSaveUri(MinecraftServer server) {
         final String worldName = getWorldName(server);
         return webDavEndpoint
-                .resolve(Config.uploadFolder + "/")
-                .resolve(worldName + "/")
-                .resolve(worldName);
+                .resolve(encode(Config.uploadFolder) + "/")
+                .resolve(encode(worldName) + "/")
+                .resolve(encode(worldName));
     }
 
     private @NotNull String getWorldName(MinecraftServer server) {
@@ -178,6 +190,10 @@ public class WebDAVStorage {
 
     private Path getWorldSavePath(MinecraftServer server) {
         return server.getSavePath(WorldSavePath.ROOT);
+    }
+
+    private String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     //endregion
