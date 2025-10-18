@@ -21,7 +21,7 @@ public class PermissionManager {
     private static final boolean fabricPermissionsApi = FabricLoader.getInstance().isModLoaded("fabric-permissions-api-v0");
 
     public static boolean hasPermission(ServerPlayerEntity player, String permission) {
-        if (Objects.requireNonNull(player.getServer()).isSingleplayer()) return true;
+        if (Objects.requireNonNull(player/*? if >=1.21.9 {*/.getEntityWorld()/*?} else {*//*.getWorld()*//*?}*/.getServer()).isSingleplayer()) return true;
         if (player.hasPermissionLevel(Config.permissionLevel)) return true;
         return fabricPermissionsApi && Permissions.check(player, permission);
     }

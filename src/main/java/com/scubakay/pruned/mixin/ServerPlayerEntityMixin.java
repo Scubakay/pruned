@@ -60,7 +60,7 @@ public class ServerPlayerEntityMixin implements PrunedServerPlayerEntity {
             pruned$loadPrunedStatus(player, pos);
 
             if (regionHelperEnabled) {
-                String dimension = DimensionHelper.getFormattedDimension(player.getWorld().getRegistryKey());
+                String dimension = DimensionHelper.getFormattedDimension(player/*? if >=1.21.9 {*/.getEntityWorld()/*?} else {*//*.getWorld()*//*?}*/.getRegistryKey());
                 Text message = getHelperMessage(
                         String.format("Current region (%s: %s) is %sin the world download ", dimension, pos, regionInWorldDownload ? "" : "not "),
                         regionInWorldDownload ? "[Remove]" : "[Add]",
@@ -74,8 +74,8 @@ public class ServerPlayerEntityMixin implements PrunedServerPlayerEntity {
 
     @Unique
     public void pruned$loadPrunedStatus(ServerPlayerEntity player, RegionPos pos) {
-        MinecraftServer server = player.getServer();
-        Path regionFile = PositionHelpers.regionPosToRegionFile(server, player.getWorld().getRegistryKey(), pos);
+        MinecraftServer server = player/*? if >=1.21.9 {*/.getEntityWorld()/*?} else {*//*.getWorld()*//*?}*/.getServer();
+        Path regionFile = PositionHelpers.regionPosToRegionFile(server, player/*? if >=1.21.9 {*/.getEntityWorld()/*?} else {*//*.getWorld()*//*?}*/.getRegistryKey(), pos);
         regionInWorldDownload = PrunedData.getServerState(server).getFiles().containsKey(regionFile);
     }
 
