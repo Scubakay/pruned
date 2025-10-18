@@ -108,6 +108,7 @@ public class WorldUploader {
                         Files.copy(in, downloadedPath, StandardCopyOption.REPLACE_EXISTING);
                     }
                     PrunedData.getServerState(server).addFile(downloadedPath);
+                    if (Config.debug) PrunedMod.LOGGER.info("Scheduled new resource pack upload with hash: {}", properties.hash());
                 } catch (Exception e) {
                     PrunedMod.LOGGER.error("Failed to download resource pack: {}", e.getMessage());
                 }

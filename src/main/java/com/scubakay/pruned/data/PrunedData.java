@@ -104,7 +104,7 @@ public class PrunedData extends PersistentState {
     public static final Codec<PrunedData> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.BOOL.fieldOf("active").forGetter(PrunedData::isActive),
             Codec.unboundedMap(PATH_CODEC, Codec.STRING).fieldOf("files").forGetter(PrunedData::getFiles),
-            Codec.STRING.fieldOf("resourcePackUrl").forGetter(PrunedData::getResourcePackHash)
+            Codec.STRING.fieldOf("resourcePackHash").forGetter(PrunedData::getResourcePackHash)
     ).apply(instance, PrunedData::new));
 
     private static PrunedData getState(ServerWorld serverWorld) {

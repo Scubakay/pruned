@@ -7,7 +7,8 @@ import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.scubakay.pruned.PrunedMod;
 import com.scubakay.pruned.config.Config;
-import com.scubakay.pruned.dialog.DynamicDialog;
+import com.scubakay.pruned.data.PrunedData;
+import com.scubakay.pruned.dialog.WebDavConfigDialog;
 import com.scubakay.pruned.storage.webdav.WebDAVStorage;
 import com.scubakay.pruned.util.MachineIdentifier;
 import com.scubakay.pruned.util.PasswordEncryptor;
@@ -16,9 +17,6 @@ import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
-
-import java.util.Map;
-import java.util.Objects;
 
 import static com.scubakay.pruned.command.PermissionManager.CONFIGURE_PERMISSION;
 import static com.scubakay.pruned.command.PermissionManager.hasPermission;
@@ -36,18 +34,10 @@ public class WebDavCommand {
         LiteralCommandNode<ServerCommandSource> openDialogNode = CommandManager.literal("login")
             .requires(ctx -> hasPermission(ctx, CONFIGURE_PERMISSION))
             .then(CommandManager.literal("webdav")
-                .executes(WebDavCommand::openWebDavConfigDialog)
+                .executes(WebDavConfigDialog::openWebDavConfigDialog)
                 .then(loginNode)
             ).build();
         PrunedCommand.getRoot(dispatcher).addChild(openDialogNode);
-    }
-
-    private static int openWebDavConfigDialog(CommandContext<ServerCommandSource> context) {
-        Objects.requireNonNull(DynamicDialog.create("webdav_config")).show(context, Map.of(
-            "%ENDPOINT%", Config.webDavEndpoint != null ? Config.webDavEndpoint : "",
-            "%USERNAME%", Config.webDavUsername != null ? Config.webDavUsername : ""
-        ));
-        return 1;
     }
 
     private static int login(CommandContext<ServerCommandSource> context) {
@@ -60,6 +50,7 @@ public class WebDavCommand {
         Config.webDavUsername = username;
         Config.webDavPassword = encryptedPassword;
         MidnightConfig.write(PrunedMod.MOD_ID);
+        PrunedData.getServerState(context.getSource().getServer()).activate();
         WebDAVStorage.connect(context.getSource().getServer());
         if (WebDAVStorage.isConnected()) {
             context.getSource().sendFeedback(() -> Text.literal("WebDAV credentials updated"), false);
