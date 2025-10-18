@@ -23,7 +23,7 @@ val shadowLibrary = configurations.create("shadowLibrary") {
 tasks.named<ShadowJar>("shadowJar") {
     configurations = listOf(shadowLibrary)
     archiveClassifier = "dev-shadow"
-    relocate("com.google", "com.scubakay.shadow")
+    relocate("com.github.lookfirst", "com.scubakay.github.lookfirst")
 }
 
 tasks {
