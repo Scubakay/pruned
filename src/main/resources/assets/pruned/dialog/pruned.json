@@ -5,7 +5,7 @@
     {
       "type": "minecraft:plain_message",
       "contents": {
-        "text": "Manage if the current chunk is saved to the world download."
+        "text": "Manage if the current region is saved to the world download."
       }
     },
     {
