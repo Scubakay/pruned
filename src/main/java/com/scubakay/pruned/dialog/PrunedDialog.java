@@ -11,7 +11,7 @@ public class PrunedDialog {
     public static void openPrunedDialog(CommandContext<ServerCommandSource> context, PrunedServerPlayerEntity player) {
         DynamicDialog prunedDialog = DynamicDialog.create("pruned");
         if (prunedDialog == null) return;
-        if (PermissionManager.hasPermission(context.getSource(), PermissionManager.TRIGGER_UPLOAD_PERMISSION)) {
+        if (PermissionManager.hasPermission(context.getSource(), PermissionManager.UPLOAD_PERMISSION)) {
             prunedDialog.addDialogAction("upload_button");
         }
         if (PermissionManager.hasPermission(context.getSource(), PermissionManager.CONFIGURE_PERMISSION)) {

@@ -61,7 +61,11 @@ public class PrunedCommand {
                 DynamicDialog.showStatic(context, Identifier.of(PrunedMod.MOD_ID, "no_permissions"));
             }
         } else {
-            PrunedDialog.openPrunedDialog(context, player);
+            if (PermissionManager.hasPermission(context.getSource(), PermissionManager.ROOT_PERMISSION)) {
+                PrunedDialog.openPrunedDialog(context, player);
+            } else {
+                DynamicDialog.showStatic(context, Identifier.of(PrunedMod.MOD_ID, "no_permissions"));
+            }
         }
         return 1;
     }

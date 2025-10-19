@@ -1,5 +1,6 @@
 package com.scubakay.pruned.mixin;
 
+import com.scubakay.pruned.command.PermissionManager;
 import com.scubakay.pruned.util.DimensionHelper;
 import com.scubakay.pruned.util.PositionHelpers;
 import com.scubakay.pruned.data.PrunedData;
@@ -61,12 +62,16 @@ public class ServerPlayerEntityMixin implements PrunedServerPlayerEntity {
 
             if (regionHelperEnabled) {
                 String dimension = DimensionHelper.getFormattedDimension(player/*? if >=1.21.9 {*/.getEntityWorld()/*?} else {*//*.getWorld()*//*?}*/.getRegistryKey());
-                Text message = getHelperMessage(
-                        String.format("Current region (%s: %s) is %sin the world download ", dimension, pos, regionInWorldDownload ? "" : "not "),
-                        regionInWorldDownload ? "[Remove]" : "[Add]",
-                        regionInWorldDownload ? "/pruned remove" : "/pruned save",
-                        regionInWorldDownload ? Colors.RED : Colors.GREEN
-                );
+                String status = String.format("Current region (%s: %s) is %sin the world download ", dimension, pos, regionInWorldDownload ? "" : "not ");
+                Text message = Text.literal(status);
+                if (PermissionManager.hasPermission(player, PermissionManager.REGION_PERMISSION)) {
+                    message = getHelperMessage(
+                            status,
+                            regionInWorldDownload ? "[Remove]" : "[Add]",
+                            regionInWorldDownload ? "/pruned remove" : "/pruned save",
+                            regionInWorldDownload ? Colors.RED : Colors.GREEN
+                    );
+                }
                 player.sendMessage(message, false);
             }
         }

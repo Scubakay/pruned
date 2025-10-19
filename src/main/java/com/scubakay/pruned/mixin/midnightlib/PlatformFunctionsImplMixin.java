@@ -1,6 +1,7 @@
 package com.scubakay.pruned.mixin.midnightlib;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.scubakay.pruned.command.PermissionManager;
 import com.scubakay.pruned.command.PrunedCommand;
 import eu.midnightdust.lib.util.fabric.PlatformFunctionsImpl;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -24,7 +25,7 @@ public class PlatformFunctionsImplMixin {
         CommandRegistrationCallback.EVENT.register(((dispatcher, registry, environment) -> PrunedCommand.getRoot(dispatcher)
                 .addChild(CommandManager
                         .literal("config")
-                        //.requires(source -> PermissionManager.hasPermission(source, PermissionManager.CONFIGURE_MOD_PERMISSION))
+                        .requires(source -> PermissionManager.hasPermission(source, PermissionManager.CONFIGURE_PERMISSION))
                         .then(command)
                         .build())));
         ci.cancel();

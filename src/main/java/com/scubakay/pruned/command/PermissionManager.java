@@ -11,12 +11,12 @@ import java.util.Objects;
 public class PermissionManager {
     public static final String ROOT_PERMISSION = "pruned";
 
-    public static final String REGION_PERMISSION = ROOT_PERMISSION + ".manage";
+    public static final String REGION_PERMISSION = ROOT_PERMISSION + ".region";
     public static final String SAVE_REGION_PERMISSION = REGION_PERMISSION + ".save";
     public static final String REMOVE_REGION_PERMISSION = REGION_PERMISSION + ".remove";
 
     public static final String CONFIGURE_PERMISSION = ROOT_PERMISSION + ".configure";
-    public static final String TRIGGER_UPLOAD_PERMISSION = ROOT_PERMISSION + ".trigger_upload";
+    public static final String UPLOAD_PERMISSION = ROOT_PERMISSION + ".upload";
 
     private static final boolean fabricPermissionsApi = FabricLoader.getInstance().isModLoaded("fabric-permissions-api-v0");
 
